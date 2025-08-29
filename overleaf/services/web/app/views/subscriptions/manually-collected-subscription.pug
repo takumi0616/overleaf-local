@@ -1,0 +1,11 @@
+extends ../layout-react
+
+block entrypointVar
+	- entrypoint = 'pages/user/subscription/group-management/manually-collected-subscription'
+
+block append meta
+	meta(name='ol-user' data-type='json' content=user)
+	meta(name='ol-groupName' data-type='string' content=groupName)
+
+block content
+	main#manually-collected-subscription-root.content.content-alt

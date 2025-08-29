@@ -1,0 +1,18 @@
+.DS_Store
+.idea
+*.log
+tmp/
+*.swp
+
+overleaf-toolkit/config/**/*
+!overleaf-toolkit/config/.gitkeep
+
+overleaf-toolkit/data/**/*
+!overleaf-toolkit/data/.gitkeep
+
+# docker image build
+.dockerignore
+
+# user defined files
+.env
+overleaf/docker-compose.override.yml

@@ -1,0 +1,188 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  sita2021.sty - a style file for SITA2021 Japanese/English manuscript
+%  sita2019.sty - a style file for SITA2019 Japanese/English manuscript
+%  sita2018.sty - a style file for SITA2018 Japanese/English manuscript
+%  sita2017.sty - a style file for SITA2017 Japanese/English manuscript
+%  sita2016.sty - a style file for SITA2016 Japanese/English manuscript
+%  sita2015.sty - a style file for SITA2015 Japanese/English manuscript
+%  sita2014.sty - a style file for SITA2014 Japanese/English manuscript
+%  sita2013.sty - a style file for SITA2013 Japanese/English manuscript
+%  sita2012.sty - a style file for SITA2012 Japanese/English manuscript
+%  sita2011.sty - a style file for SITA2011 Japanese/English manuscript
+%  sita2010.sty - a style file for SITA2010 Japanese/English manuscript
+%  sita2009.sty - a style file for SITA2009 Japanese/English manuscript
+%  sita2008.sty - a style file for SITA2008 Japanese/English manuscript
+%  sita2007.sty - a style file for SITA2007 Japanese/English manuscript
+%  sita2006.sty - a style file for SITA2006 Japanese/English manuscript
+%  sita2005.sty - a style file for SITA2005 Japanese/English manuscript
+%                 by Atsushi Kinjo <akinjo@loc.ie.u-ryukyu.ac.jp>
+%  sita2003.sty - a style file for SITA2003 Japanese/English manuscript
+%                 by Naoto SONE <naosone@naruto-u.ac.jp>
+%  sita2002.sty - a style file for SITA2001 Japanese/English manuscript
+%                 by Ryutaroh Matsumoto <ryutaroh@rmatsumoto.org>
+%  sita2001e.sty - a style file for SITA2001 Japanese manuscript
+%                  by Hidenori Kuwakado kuwakado@eedept.kobe-u.ac.jp
+%  sita2k.sty - a style file for SITA2000 Japanese manuscript
+%             by Shunsuke ARAKI shun@capricorn.cse.kyutech.ac.jp
+%  sita96.sty - a style file for SITA96 Japanese manuscript
+%             by Shuichi Itoh Univ. Elec-Comm itoh@is.uec.ac.jp
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\typeout{sita2021.sty: SITA2021 manuscript, Jul. 5, 2021}
+\def\sita_header{
+ \vspace*{-20.5mm}
+    \hfill \vbox{\footnotesize
+      \hbox to 60mm{The 44th Symposium on Information Theory \hss}
+      \hbox to 60mm{and its Applications (SITA2021) \hss}
+      \hbox to 60mm{Nishinomiya, Hyogo, Japan, Dec.\ 8--10, 2021 \hss}
+    }
+}
+%
+\pagestyle{empty} % No header, footer
+\textwidth 174mm
+\textheight 247mm
+\oddsidemargin -7.4mm
+\evensidemargin -7.4mm
+\topmargin 4.6mm
+\headheight 0pt
+\headsep 0pt
+\footskip 0pt
+\columnsep 7mm
+% We cannot use "1zw" in non-Japanese latex.
+%\parindent 1zw \relax
+
+\twocolumn
+\flushbottom
+
+\ifx\pdg\undefined \else                 % for jarticle in NTT-JLaTeX
+ \def\bf{\protect\pdg\protect\pbf}
+ \def\sloppy{\tolerance 5000 \hfuzz .5\p@ \vfuzz .5\p@}
+ \sloppy
+\fi
+
+\newcommand{\samethanks}[1]{$^{\@fnsymbol{#1}}$}
+
+\def\maketitle{
+  \par
+  \begingroup
+    \def\thefootnote{\fnsymbol{footnote}}
+    \def\@makefnmark{\hbox to 0pt{$^{\@thefnmark}$\hss}}
+    \twocolumn[\@maketitle]\@thanks
+  \endgroup
+  \setcounter{footnote}{0}
+  \let\maketitle\relax
+  \let\@maketitle\relax
+  \gdef\@thanks{}\gdef\@author{}\gdef\@title{}\let\thanks\relax
+
+  \ifx\@abstract\empty\else{\noindent \small{\bf
+      Abstract}---\@abstract\par\vskip2pt \noindent\@keywords\par}\fi
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The 44th Symposium on Information Theory
+% and its Applications (SITA2021)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\@maketitle{
+  \newpage \null
+  {
+    \sita_header
+  }
+  \begin{center}
+    \vspace*{5mm}
+    {\Large \bf \@title \par} \vskip 1.5em
+    {
+      \large \lineskip .5em
+      \begin{tabular}[t]{c} \@author \end{tabular}
+        \par}
+    \end{center}
+    \par \vskip 1.5em
+    } 
+
+\long\def\abstract#1{\def\@abstract{#1}}
+\def\keywords#1{\def\@keywords{\noindent{\bf Keywords}---#1}}
+\def\@abstract{} \def\@keywords{}
+%
+%%%%%%%%%%%%% start of optional setting %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% baselineskip for each font sizes
+% XXX LaTeX2e does not recognize the following change of font sizes (R. Matsumoto).
+%
+%%%% H. Kuwakado
+%%%%\def\@normalsize{\@setsize\normalsize{14pt}\xpt\@xpt
+\def\@normalsize{\@setsize\normalsize{12pt}\xpt\@xpt
+\abovedisplayskip 10pt plus2pt minus5pt\belowdisplayskip \abovedisplayskip
+\abovedisplayshortskip \z@ plus3pt\belowdisplayshortskip 6pt plus3pt minus3pt
+\let\@listi\@listI}
+%%%% H. Kuwakado
+%%%%\def\small{\@setsize\small{11pt}\ixpt\@ixpt
+\def\small{\@setsize\small{11pt}\ixpt\@ixpt
+\abovedisplayskip 8.5pt plus 3pt minus 4pt\belowdisplayskip \abovedisplayskip
+\abovedisplayshortskip \z@ plus2pt\belowdisplayshortskip 4pt plus2pt minus 2pt
+\def\@listi{\leftmargin\leftmargini \topsep 1pt plus 1pt minus 1pt\parsep 0pt
+plus 1pt
+\itemsep \parsep}}
+\def\footnotesize{\@setsize\footnotesize{11pt}\viiipt\@viiipt
+\abovedisplayskip 6pt plus 2pt minus 4pt\belowdisplayskip \abovedisplayskip
+\abovedisplayshortskip \z@ plus 1pt\belowdisplayshortskip 3pt plus 1pt minus
+2pt
+\def\@listi{\leftmargin\leftmargini \topsep 1pt plus 1pt minus 1pt\parsep 0pt
+plus 1pt minus 1pt
+\itemsep \parsep}}
+\def\scriptsize{\@setsize\scriptsize{8pt}\viipt\@viipt}
+\def\tiny{\@setsize\tiny{6pt}\vpt\@vpt}
+\def\large{\@setsize\large{18pt}\xiipt\@xiipt}
+\def\Large{\@setsize\Large{22pt}\xivpt\@xivpt}
+\def\LARGE{\@setsize\LARGE{25pt}\xviipt\@xviipt}
+\def\huge{\@setsize\huge{25pt}\xxpt\@xxpt}
+\def\Huge{\@setsize\Huge{30pt}\xxvpt\@xxvpt}
+\normalsize 
+%
+%
+% List env.
+%
+%
+\def\@listI{\leftmargin\leftmargini \parsep 0pt plus 1pt\topsep 1.5pt
+plus 1pt minus 1pt\itemsep 0pt}
+\let\@listi\@listI
+\@listi 
+\def\@listii{\leftmargin\leftmarginii
+ \labelwidth\leftmarginii\advance\labelwidth-\labelsep
+ \topsep 1pt plus 1pt minus 1pt
+ \parsep 0pt plus 1pt
+ \itemsep 0pt}
+\def\@listiii{\leftmargin\leftmarginiii
+ \labelwidth\leftmarginiii\advance\labelwidth-\labelsep
+ \topsep 0pt plus 1pt
+ \parsep \z@ \partopsep 1pt plus 0pt minus 1pt
+ \itemsep 0pt}
+%
+%  Spacing of section, subsection, subsubsection, paragraph, subparagraph
+%
+\def\section{\@startsection {section}{1}{\z@}{10pt plus 0.5ex minus 
+ .2ex}{0.001pt plus .2ex}{\font@s}}
+\def\subsection{\@startsection{subsection}{2}{\z@}{5pt plus 1pt minus 
+ 1pt}{0.001pt plus 1pt}{\font@ss}}
+\def\subsubsection{\@startsection{subsubsection}{3}{\z@}{3pt plus 
+1pt}{0.001pt plus 1pt}{\font@sss}}
+\def\paragraph{\@startsection
+ {paragraph}{4}{\z@}{0.001pt plus 0.5ex}{-1em}{\normalsize\bf}}
+\def\subparagraph{\@startsection
+ {subparagraph}{4}{\parindent}{0.001pt plus 0.5ex
+}{-1em}{\normalsize\bf}}
+%
+\def\sectionfont#1#2#3{\gdef\font@s{#1}\gdef\font@ss{#2}\gdef\font@sss{#3}}
+\sectionfont{\large\bf}{\normalsize\bf}{\normalsize\bf}
+%
+%
+% Style of footnote
+%
+%
+% We cannot use 1zw in English LaTeX.
+% Do we have to redefine footnote style??
+\long\def\@makefntext#1{%
+\everypar={\hangindent=1em \hangafter=1 \@nobreakfalse\@minipagefalse}%
+%\parindent 1em
+\noindent%
+\hbox to 1em{\hss$^{\@thefnmark}$ }\strut #1\strut}
+%
+
+% end of file

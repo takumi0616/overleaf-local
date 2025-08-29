@@ -1,0 +1,24 @@
+---
+services:
+
+    mongo:
+        restart: always
+        image: "${MONGO_DOCKER_IMAGE}"
+        command: "${MONGO_ARGS}"
+        container_name: mongo
+        volumes:
+            - "${MONGO_DATA_PATH}:/data/db"
+        expose:
+            - 27017
+        healthcheck:
+            test: echo 'db.stats().ok' | ${MONGOSH} localhost:27017/test --quiet
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
+    sharelatex:
+      depends_on:
+        mongo:
+          condition: service_healthy
+      links:
+        - mongo

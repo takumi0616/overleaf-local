@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Overleaf: Status (CSRF/Cookie確認)",
+      "type": "shell",
+      "command": "bash scripts/overleaf-sync.sh status",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always" },
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Overleaf: New（ディレクトリから新規作成）",
+      "type": "shell",
+      "command": "bash scripts/overleaf-sync.sh new ${input:newDir}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always" },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Overleaf: Update（既存プロジェクトへ反映）",
+      "type": "shell",
+      "command": "bash scripts/overleaf-sync.sh update ${input:projectId} ${input:updateDir}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always" },
+      "group": "build",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "newDir",
+      "type": "promptString",
+      "description": "アップロード元ディレクトリ（相対/絶対パス）",
+      "default": "SITA2025_高須賀"
+    },
+    {
+      "id": "projectId",
+      "type": "promptString",
+      "description": "Overleaf Project ID（例: 68aef7cc21c3446b6bedfa43）",
+      "default": "68aef7cc21c3446b6bedfa43"
+    },
+    {
+      "id": "updateDir",
+      "type": "promptString",
+      "description": "アップロード元ディレクトリ（相対/絶対パス）",
+      "default": "SITA2025_高須賀"
+    }
+  ]
+}

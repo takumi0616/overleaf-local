@@ -1,0 +1,108 @@
+import { ChangeEvent, FC, memo, useCallback } from 'react'
+import OLTooltip from '@/shared/components/ol/ol-tooltip'
+import { sendMB } from '../../../infrastructure/event-tracking'
+import { isValidTeXFile } from '../../../main/is-valid-tex-file'
+import { useTranslation } from 'react-i18next'
+import { useEditorOpenDocContext } from '@/features/ide-react/context/editor-open-doc-context'
+import { useEditorPropertiesContext } from '@/features/ide-react/context/editor-properties-context'
+
+function EditorSwitch() {
+  const { t } = useTranslation()
+  const { showVisual: visual, setShowVisual: setVisual } =
+    useEditorPropertiesContext()
+  const { openDocName } = useEditorOpenDocContext()
+
+  const richTextAvailable = openDocName ? isValidTeXFile(openDocName) : false
+
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const editorType = event.target.value
+
+      switch (editorType) {
+        case 'cm6':
+          setVisual(false)
+          break
+
+        case 'rich-text':
+          setVisual(true)
+          break
+      }
+
+      sendMB('editor-switch-change', { editorType })
+    },
+    [setVisual]
+  )
+
+  return (
+    <div
+      className="editor-toggle-switch"
+      aria-label={t('toolbar_code_visual_editor_switch')}
+    >
+      <fieldset className="toggle-switch">
+        <legend className="visually-hidden">Editor mode.</legend>
+
+        <input
+          type="radio"
+          name="editor"
+          value="cm6"
+          id="editor-switch-cm6"
+          className="toggle-switch-input"
+          checked={!richTextAvailable || !visual}
+          onChange={handleChange}
+        />
+        <label htmlFor="editor-switch-cm6" className="toggle-switch-label">
+          <span>{t('code_editor')}</span>
+        </label>
+
+        <RichTextToggle
+          checked={richTextAvailable && visual}
+          disabled={!richTextAvailable}
+          handleChange={handleChange}
+        />
+      </fieldset>
+    </div>
+  )
+}
+
+const RichTextToggle: FC<{
+  checked: boolean
+  disabled: boolean
+  handleChange: (event: ChangeEvent<HTMLInputElement>) => void
+}> = ({ checked, disabled, handleChange }) => {
+  const { t } = useTranslation()
+
+  const toggle = (
+    <span>
+      <input
+        type="radio"
+        name="editor"
+        value="rich-text"
+        id="editor-switch-rich-text"
+        className="toggle-switch-input"
+        checked={checked}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+      <label htmlFor="editor-switch-rich-text" className="toggle-switch-label">
+        <span>{t('visual_editor')}</span>
+      </label>
+    </span>
+  )
+
+  if (disabled) {
+    return (
+      <OLTooltip
+        description={t('visual_editor_is_only_available_for_tex_files')}
+        id="rich-text-toggle-tooltip"
+        overlayProps={{ placement: 'bottom' }}
+        tooltipProps={{ className: 'tooltip-wide' }}
+      >
+        {toggle}
+      </OLTooltip>
+    )
+  }
+
+  return toggle
+}
+
+export default memo(EditorSwitch)

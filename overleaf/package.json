@@ -1,0 +1,95 @@
+{
+  "name": "overleaf",
+  "private": true,
+  "dependencies": {
+    "patch-package": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.0",
+    "@types/chai-as-promised": "^7.1.8",
+    "@types/mocha": "^10.0.6",
+    "@typescript-eslint/eslint-plugin": "^8.30.1",
+    "@typescript-eslint/parser": "^8.30.1",
+    "eslint": "^8.15.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-chai-expect": "^3.0.0",
+    "eslint-plugin-chai-friendly": "^0.7.2",
+    "eslint-plugin-cypress": "^2.15.1",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-mocha": "^10.1.0",
+    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-unicorn": "^56.0.0",
+    "prettier": "3.6.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "npm": "11.4.2"
+  },
+  "overrides": {
+    "swagger-tools@0.10.4": {
+      "path-to-regexp": "3.3.0",
+      "body-parser": "1.20.3",
+      "multer": "2.0.2"
+    },
+    "isomorphic-git@^1.33.0": {
+      "sha.js": "2.4.12"
+    },
+    "request@2.88.2": {
+      "tough-cookie": "5.1.2",
+      "form-data": "2.5.5"
+    },
+    "superagent@7.1.6": {
+      "form-data": "4.0.4"
+    },
+    "superagent@3.8.3": {
+      "form-data": "2.5.5"
+    },
+    "retry-request@7.0.2": {
+      "form-data": "2.5.5"
+    },
+    "@types/request@2.48.12": {
+      "form-data": "2.5.5"
+    },
+    "@cypress/request@3.0.1": {
+      "form-data": "2.5.5"
+    }
+  },
+  "scripts": {
+    "format": "prettier --list-different $PWD/'**/*.js'",
+    "format:fix": "prettier --write $PWD/'**/*.js'",
+    "lint": "eslint --max-warnings 0 --format unix .",
+    "lint:fix": "eslint --fix .",
+    "postinstall": "patch-package"
+  },
+  "workspaces": [
+    "jobs/mirror-documentation",
+    "libraries/*",
+    "services/analytics",
+    "services/chat",
+    "services/clsi",
+    "services/clsi-cache",
+    "services/clsi-perf",
+    "services/contacts",
+    "services/docstore",
+    "services/document-updater",
+    "services/filestore",
+    "services/freegeoip",
+    "services/github-sync",
+    "services/history-v1",
+    "services/idp",
+    "services/latexqc",
+    "services/notifications",
+    "services/project-history",
+    "services/real-time",
+    "services/references",
+    "services/templates",
+    "services/third-party-datastore",
+    "services/third-party-references",
+    "services/tpdsworker",
+    "services/web",
+    "tools/saas-e2e"
+  ]
+}

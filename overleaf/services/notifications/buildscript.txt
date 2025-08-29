@@ -1,0 +1,9 @@
+notifications
+--dependencies=mongo
+--docker-repos=us-east1-docker.pkg.dev/overleaf-ops/ol-docker
+--env-add=
+--env-pass-through=
+--esmock-loader=False
+--node-version=22.18.0
+--public-repo=True
+--script-version=4.7.0

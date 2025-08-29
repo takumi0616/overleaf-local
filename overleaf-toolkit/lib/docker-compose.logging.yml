@@ -1,0 +1,5 @@
+---
+services:
+  sharelatex:
+    volumes:
+      - "${OVERLEAF_LOG_PATH}:${OVERLEAF_IN_CONTAINER_LOG_PATH}"

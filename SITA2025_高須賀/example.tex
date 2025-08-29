@@ -1,0 +1,529 @@
+% 第42回情報理論とその応用シンポジウム 予稿集 原稿様式
+% e-pTeX, Version 3.14159265-p3.7.1-161114-2.6 (utf8.euc) (TeX Live 2017/Debian) (preloaded format=platex)
+% 本文: 日本語
+
+\documentclass{jarticle}
+\usepackage{sita2021}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{bbm}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{lscape}
+\usepackage{comment}
+\usepackage{longtable}
+\usepackage{url}
+\usepackage{color}
+
+%%%%% Theorem environment 定理環境 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\theoremstyle{definition}
+%\theoremsymbol{\ensuremath{\Box}}
+\newtheorem{theorem}{定理}
+\newtheorem{prop}{命題}
+\newtheorem{lemma}{補題}
+\newtheorem{cor}{系}
+\newtheorem{example}{例}
+\newtheorem{definition}{定義}
+\newtheorem{rem}{注意}
+\newtheorem{guide}{参考}
+\newtheorem{assumption}{仮定}
+\renewcommand\proofname{\bf 証明}
+
+%%%%%%%%%%%%%%%%%%%%%%定理環境の設定%%%%%%%%%%%%%%%%%%%%%%
+\newtheoremstyle{definition}% スタイルの名前
+{5pt}% 環境の上のスペース
+{5pt}% 環境の下のスペース
+{\normalfont}% 環境内のフォント
+{0pt}% 題名前のスペースするか
+{\bfseries}% 題名のフォント
+{:}% 題名の後の操作など
+{4pt}% 題名の後にどの程度スペースを挿入するか↑のように改行すると意味がなくなります
+{\thmname{#1}~\thmnumber{#2}\thmnote{\hspace{4pt}#3}}% 題名の書式
+%#1:共通の表題：「定理」など%#2 カウンタの値が入る%#3 表題
+%%%%%%%%%%%%%%%%%%%%%%定理環境を作る%%%%%%%%%%%%%%%%%%%%%%
+%%%%% math %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\def\QED{\hfill$\square$}
+\newcommand{\argmax}{\mathop{\rm argmax}\limits}
+\newcommand{\argmin}{\mathop{\rm argmin}\limits} 
+
+\renewcommand{\baselinestretch}{.9}
+
+\title{
+  %和文の論文題目
+  二値分類器の推定誤差に基づく多値分類性能に関する一考察\\
+  %英文の論文題目
+  	Multivalued Classification Performance Based on Estimation Error of Binary Classifiers
+}
+
+\author{
+  %和文の第一著者名
+  雲居玄道
+ \thanks{ %和文の所属と住所
+  〒169-8555 東京都新宿区大久保3-4-1 早稲田大学，
+    %英文の所属と住所
+ Waseda University, 3-4-1 Okubo, Shinjuku-ku, Tokyo 169-8555, Japan.
+    % E-mail address
+   E-mail: {\tt moto-aries@\allowbreak
+      ruri.\allowbreak
+      waseda.\allowbreak
+      jp}
+  }\\
+  %英文の第一著者名
+  Gendo Kumoi
+  \and
+%第二著者名(和文)
+八木秀樹
+  \thanks{
+〒182-8585 東京都調布市調布ヶ丘1-5-1 電気通信大学，
+The University of Electro-Communications, 1-5-1 Chofugaoka, Chofu, Tokyo 182-8585, Japan.
+  }\\
+%第二著者名(英文)
+%
+Hideki Yagi
+  \and
+  小林学
+  \samethanks {1}\\
+  Manabu Kobayashi
+  \and
+  後藤正幸
+  \samethanks {1}\\
+  Masayuki Goto
+  \and
+  平澤茂一
+  \samethanks {1}\\
+  Shigeichi Hirasawa
+}
+
+
+\abstract{
+  Error-Correcting Output Coding (ECOC) is a method for constructing a multi-valued classifier using a combination of the given binary classifiers. 
+  ECOC is said to be able to estimate the correct category by other binary classifiers even if the output of some binary classifiers is incorrect based on the framework of the coding theory. 
+  Although it is experimentally known that this method performs well on real data, a theoretical analysis of the classification accuracy for ECOC has yet to be conducted.
+In this study, we analytically evaluate how the estimation of the categories is influenced by the estimated posterior probability, which is the output of the binary classifier, as well as by the structure of constructing the code word table.  
+This evaluation shows that correct classification is possible when using ECOC even if the training phase of the binary classifiers is insufficient.
+}
+\keywords{
+  Multi-valued Classification, Error-Correcting Output Coding, Estimated Posterior Probabilities
+}
+
+\begin{document}
+\maketitle
+
+\section{はじめに}
+分類問題とは，大量のデータから知識を得るためのアプローチとして，データからカテゴリーを推定する問題である．
+この問題は，カテゴリの数が2のときは2値分類問題，3以上のときは多値分類問題と呼ばれる．
+
+2値分類問題に対しては，Support Vector Machine (SVM) \cite{Vapnik1998-jd}, AdaBoost \cite{Freund1997-yz}, Regularized Least Squares Classification (RLSC) \cite{Rifkin2004-sk}などの機械学習モデルがよく知られている．
+しかし，この2値分類器を多値分類器に拡張するには，空間的，時間的に多くの計算が必要になる．また，これらの問題を解決しようとすると，精度の低下を招くため，多値分類器の構築は困難である．
+
+多値分類器を構築するためのもう1つのアプローチとして，符号理論の枠組みを導入したECOC（Error-Correcting Output Coding）\cite{Dietterich1994-mt}がある．
+ECOCは，複数個の2値分類器の組み合わせで多値分類器を構成する．
+これによりある2値分類器の出力が間違っていても，他の2値分類器を使って正しいカテゴリを推定することが可能となる枠組みである．
+2値分類器を組み合わせて多値分類器を構築する方法としては， ``One-vs-Rest'' 法 (1vR) \cite{Rifkin2004-sk}がよく知られている．
+1vR法は，カテゴリを1対他に分割するすべての2値分類器を組み合わせる構成法であり，
+ニューラルネットワークやディープラーニングでは出力層においてこの1vRで構成されているとみなすこともできる．
+このようなよく用いられる1vR法もECOCに属する手法であるため，その性能について解明することは応用面からも意義がある．
+
+ECOCの分類精度は，2値分類器の構成を示す符号語表によって大きく変わることが一般に知られている．
+そのため，様々な符号語表が提案され \cite{Dietterich1994-mt,Rifkin2004-sk,Escalera2010-pa,Rocha2014-ey,後藤正幸2014入門パターン認識と機械学習} ，実験的な性能評価が行われてきた．
+これに対し，符号語表における分類精度の違いについての理論的な評価は少なく，筆者らは2値分類器が真の事後確率を出力する状況の元での符号語表の最適性を明らかにした\cite{雲居玄道2021最適性}．
+しかし，実問題においては2値分類器の出力である推定事後確率と真の事後確率に差が生じる状況が想定される．
+このような非理想状況におけるECOCの性能は，最適な分類性能と差が生じる．
+
+そこで本研究では，2値分類器の対数推定事後確率比と真の対数事後確率比の差が正規分布に従う確率変数と仮定する．
+この仮定のもとで，符号語表の構成によって，最適性からのずれが異なる．
+そこで，符号語表の構成と最適性に対する頑健性の関係を明らかにするとともに，実データを用いた評価実験を行う．
+
+\section{Error-Correcting Output Coding}
+分類問題は，与えられた入力データ$\bm{x} \in \mathbb{R}^d$に対応するカテゴリ$c_i\ (i \in C \coloneqq \{1,2,\ldots,M\})$を推定する問題である．$M$はカテゴリ数を表し，$M \ge 3$ の場合，この問題は多値分類問題と呼ばれる．
+
+ECOCは，符号理論の枠組みを導入した誤り訂正符号に基づく多値分類法\cite{Dietterich1994-mt}である．
+この手法では，事前\cite{Rifkin2004-sk,Dietterich1994-mt,Escalera2010-pa}または逐次的\cite{Rocha2014-ey}に符号語表と呼ばれる2値分類器の構成法が与えられる．
+この符号語表に基づき構成された各2値分類器の出力をもとにカテゴリが推定される．
+
+いま，長さ$N$の符号語を$M$個，行として並べた$M\times N$行列$W$を符号語表と呼ぶ．
+行列$W$の行はカテゴリを表し，列は2値分類器の構成を意味する．
+この行列$W$の$ (i,j) $成分を$w_{ij}$と表すとき，
+本研究では$w_{ij} \in \{0,1\}$が2元の場合を仮定する．
+
+また，符号語表$W$の$j$列目により構成される2値分類器を$f_j\ (j \in F \coloneqq \{1,2,\ldots,N\})$とする．このとき$f_j$は，$w_{ij}$が0となるカテゴリと$w_{ij}$が1となるカテゴリに分ける2値分類器となる．
+
+\section{問題設定}
+\subsection{2値分類器の重み}
+符号語表$W$の$j$列目は$M$個のカテゴリを$n_j$-vs-$(M-n_j)$ ($1\leq n_j\leq M - 1$)に分割する2値分類器である．
+このとき，カテゴリ$c_i$に対する2値分類器の重みを以下のように定義する．
+\begin{definition}[2値分類器の重み]\label{def:cate_weight}
+$W$の$j$列目の$a$に等しい数は，
+ \begin{equation}\label{eq:cate_weight}
+    t_{j}(a|W) =\begin{cases}
+    \sum_{i = 1}^M w_{ij}&(a = 1),\\
+    M - \sum_{i = 1}^M w_{ij}&(a = 0),
+  \end{cases}
+\end{equation} 
+となる．
+ここで, $t_{j}(1|W)$ は，$j$列目の列重みを意味する．
+さらに，$t_{j}(w_{ij}|W)=n$は，$w_{ij}$に対応する$n$個のカテゴリに$c_{i}$が含まれることを意味している．
+そのため，2値分類器$f_j$は$n$-vs-($M - n$)の分類器となる．
+この2値分類器 $f_j$ を$c_i$に対してタイプ$n$であると呼ぶ．
+
+\QED
+\end{definition}
+
+\subsection{2カテゴリ間の比較}
+重み$t_{j}(\cdot|W)$を用いて，カテゴリ$c_i$と$c_k$について，$c_i$のタイプが$n$で，$c_k$のタイプが$M-n$の分類器の個数を$s(c_i,c_k,n|W)$を以下のように定義する．
+\begin{definition}[$c_i$と$c_k$のもとでタイプ$n$となる個数]\label{def:nvR_d_H}
+二元符号語表において，2値分類器のタイプは$n \in \{1, 2, \ldots, M-1\}$となる．
+カテゴリ$c_i$と$c_k$について，$c_i$のタイプが$n$で，$c_k$のタイプが$M-n$の分類器の数を次のように表す．
+\begin{align}\label{eq:s(c_i,c_k,n|W)}
+    s(c_i,c_k,n|W) = \sum_{j = 1}^N (w_{ij} \oplus w_{kj}) \mathbbm{1}_n(t_{j}(w_{ij}|W)),
+\end{align}
+ここで，$\mathbbm{1}_n(a)$はインジケータ関数で，以下のように定義される．
+  \begin{equation}
+  \mathbbm{1}_n(a)=\left\{\begin{matrix}
+    1\quad(n = a),\\
+    0\quad(n \neq a).
+  \end{matrix}\right.
+  \end{equation}
+\QED \end{definition} 
+
+\begin{definition}[対称性]\label{def:Symmetric}
+全ての$n \in \{1,2,\ldots,M-1\}$において，$s(c_i,c_k,n|W) = s(c_k,c_i,n|W)$となるとき，対称性をもつカテゴリと呼ぶ．
+また，全ての$i,k\in C$が対称性をもつカテゴリであるとき，対称性をもつ符号語表と呼ぶ．
+\QED \end{definition} 
+
+\subsection{対象とするカテゴリ推定法}
+本研究では2値分類器の出力を推定事後確率として以下のように仮定する．
+\begin{assumption}\label{ass:ECOC_推定事後確率}
+2値分類器の出力は$f_j(\bm{x})\in [0,1]$であり，推定事後確率$P(1|\bm{x},f_j)$に相当する．
+\QED \end{assumption} 
+この仮定のもとでは，Passeriniら\cite{Passerini2004-ec}と同様に2値分類器の出力は，同様に$f_j(\bm{x})\in[0,1]$となる．
+そこで，ECOCの出力は，
+\begin{equation}\label{eq:Passerini}
+g(c_i|\bm{x}) = \prod_{j = 1}^N f_j(\bm{x})^{w_{ij}}(1-f_j(\bm{x}))^{1 - w_{ij}}
+\end{equation}
+とし事後確率の積による復号法を用いる．
+これらのもとで，ECOCにおけるカテゴリ推定は以下の式で推定される．
+ \begin{equation}\label{eq:ecoc_カテゴリ推定}
+    \hat{i}= \argmax_{i \in C} g(c_i|\bm{x}).
+\end{equation}
+
+\subsection{推定事後確率}
+各カテゴリの真の事後確率を
+\begin{equation}\label{eq:MAP}
+    P^*_i = {\rm Pr}\{c_i|\bm{x}\},
+\end{equation}
+と定義する．
+このとき，理想状況における各2値分類器の出力である真の事後確率$f^*_j(\bm{x})$を以下のように定義する．
+\begin{definition}\label{def:MAPbinary}
+各$j \in F$に対し，
+ \begin{equation}\label{eq:MAPecoc}
+    f^*_j(\bm{x}) = \sum_{i = 1}^M w_{ij}P^*_i.
+\end{equation}
+\QED \end{definition}
+これに対し，非理想状況における2値分類器の推定事後確率$f_j(\bm{x})$は，理想状況である真の事後確率$f^*_j(\bm{x})$を近似していると考えられる．
+ここで，対数事後確率比は，対数オッズとも呼ばれ，ロジスティック回帰などの一般化線形モデル \cite{friedman2001elements}において，2値分類器の事後確率の推定に用いられる．
+この推定誤差に対応する誤差項を以下のように定義する。
+\begin{definition}\label{def:ECOC_noise}
+対数事後確率比の誤差項$\varepsilon_j$を次のように定義する．
+\begin{align}\label{eq:ecoc_noise}
+\varepsilon_j = \log \frac{f_j(\bm{x})}{1-f_j(\bm{x})} - \log \frac{f^*_j(\bm{x})}{1-f^*_j(\bm{x})},
+\end{align}
+ただし， $0<f_j(\bm{x}), f^*_j(\bm{x}) < 1$ for $\forall j \in F$.
+\QED \end{definition} 
+この定義の誤差項は，学習段階で発生する2値分類器の推定誤差とみなすことができる．
+データが分類境界に近い場合には， $\varepsilon_j$ の効果が大きくなる．
+
+定義\ref{def:ECOC_noise}より，$f_j(\bm{x})$ と $1-f_j(\bm{x})$ は以下のように表すことができる．
+\begin{align}\label{eq:ecoc_f}
+    f_j(\bm{x}) &= \frac{e^{\varepsilon_j} f^*_j(\bm{x})}{1 + (e^{\varepsilon_j} - 1) f^*_j(\bm{x})},\\
+    1 - f_j(\bm{x}) &= \frac{1 - f^*_j(\bm{x})}{1 + (e^{\varepsilon_j} - 1) f^*_j(\bm{x})},
+\end{align}
+このとき，もし $f^*_j(\bm{x})=0$ または $f^*_j(\bm{x})=1$ であれば $f^*_j(\bm{x})=f_j(\bm{x})$ となり，誤差項$\varepsilon_j$の影響を受ずに成り立つ.
+そのため，式\eqref{eq:ecoc_f} は $0 \leq f_j(\bm{x}) \leq 1$で成り立つ．
+
+ECOCのカテゴリ推定に対する$\varepsilon_j$は符号語表によって異なる．
+そのため，本研究では，この定義のもと，符号語表と$\varepsilon_j$関係を明らかにすることを目的とする．
+
+\section{2つのカテゴリ間の関係性}
+本節では，定義\ref{def:ECOC_noise}のもとで，符号語表と事後確率比の関係を2つのカテゴリ間を対象に明らかにする．
+
+\subsection{2つのカテゴリ間のECOCの出力比}
+まず$c_i,c_k$の2つのカテゴリ間における誤差と分類誤り率の関係を考える．
+そのため，$g(c_i|\bm{x}),g(c_k|\bm{x})$の比を考えると，式\eqref{eq:Passerini}, \eqref{eq:ecoc_noise}より，
+\begin{align}\label{eq:g_comp}
+    \frac{g(c_i|\bm{x})}{g(c_k|\bm{x})} &= \frac{\prod_{j = 1}^N f_j(\bm{x})^{w_{ij}}(1-f_j(\bm{x}))^{1 - w_{ij}}}{\prod_{j = 1}^N f_j(\bm{x})^{w_{kj}}(1-f_j(\bm{x}))^{1 - w_{kj}}}\nonumber\\
+     &= e^{\sum_{j = 1}^N (w_{ij} - w_{kj})\varepsilon_j}\prod_{j = 1}^N\left(\frac{f^*_j(\bm{x})}{1-f^*_j(\bm{x})}\right)^{w_{ij} - w_{kj}},
+\end{align}
+と表せる．
+このもとで，真のカテゴリが$c_i$となるとき，
+\begin{align}\label{eq:g_comp_c_i}
+    \frac{g(c_i|\bm{x})}{g(c_k|\bm{x})} > 1,
+\end{align}
+ならば正しく復号可能である．式(\ref{eq:g_comp}), (\ref{eq:g_comp_c_i})より，以下の関係が導出される
+\begin{align}\label{eq:g_comp_cond}
+&e^{\sum_{j = 1}^N (w_{ij} - w_{kj})\varepsilon_j}>\prod_{j = 1}^N\left(\frac{1-f^*_j(\bm{x})}{f^*_j(\bm{x})}\right)^{w_{ij} - w_{kj}}\nonumber\\
+& \Leftrightarrow \sum_{j = 1}^N (w_{ij} - w_{kj})\varepsilon_j > \sum_{j = 1}^N (w_{ij} - w_{kj}) \log\left(\frac{1-f^*_j(\bm{x})}{f^*_j(\bm{x})}\right).
+\end{align}
+
+\subsection{等距離上の事後確率}
+多値分類には分類境界が複数ある．
+最も分類が難しいと考えられるのが，すべてのカテゴリが重なる点である．
+そこで，真のカテゴリが$c_i$としたとき，それ以外のカテゴリからは等距離離れているデータ点を考え，以下を仮定する．
+\begin{assumption}\label{ass:P_i}
+\begin{align}\label{eq:P_i_alpha}
+P_k = \frac{1 - P^*_i}{M - 1}, k \in C \backslash i
+\end{align}
+\QED \end{assumption} 
+もし，$P_i>\frac{1}{M}$ならば最大事後確率推定において，カテゴリ$c_i$と推定される．
+
+この仮定\ref{ass:P_i}のもとで，$f^*_j(\bm{x})$は，式\eqref{eq:cate_weight}, \eqref{eq:MAPecoc}より，
+\begin{align}
+    f^*_j(\bm{x})&=\begin{cases}
+    P^*_i + \left(t_{j}(1|W) - 1\right)\frac{1-P^*_i}{M-1} & (w_{ij} = 1),\\
+    t_{j}(1|W)\frac{1-P^*_i}{M-1}& (w_{ij} = 0),
+    \end{cases} \\
+    1 - f^*_j(\bm{x})&=\begin{cases}
+    t_{j}(0|W)\frac{1-P^*_i}{M-1}& (w_{ij} = 1),\\
+    P^*_i + \left(t_{j}(0|W) - 1\right)\frac{1-P^*_i}{M-1}& (w_{ij} = 0),
+    \end{cases}
+\end{align}
+となる．このとき，
+\begin{align}\label{eq:f_comp}
+     &\left(\frac{1-f^*_j(\bm{x})}{f^*_j(\bm{x})}\right)^{w_{ij}-w_{kj}} \nonumber\\
+     &=\left(\frac{t_j(1 - w_{ij}|W)\frac{1-P^*_i}{M-1}}{P^*_i+(t_j(w_{ij}|W)-1)\frac{1-P^*_i}{M-1}}\right)^{w_{ij}\oplus w_{kj}}\nonumber\\
+      &=\left(\frac{(M-t_j(w_{ij}|W))\frac{1-P^*_i}{M-1}}{P^*_i+(t_j(w_{ij}|W)-1)\frac{1-P^*_i}{M-1}}\right)^{w_{ij}\oplus w_{kj}}.
+\end{align}
+定義\ref{def:nvR_d_H} と 式\eqref{eq:f_comp}より，式\eqref{eq:g_comp_cond}は以下のように書き換えられる．
+\begin{align}\label{eq:eps_s}
+     &\sum_{j = 1}^N (w_{ij} - w_{kj})\varepsilon_j \nonumber\\
+     &> \sum_{n = 1}^{M - 1}s(c_i,c_k,n|W)\log\left(\frac{(M - n)(1-P^*_i)}{(M-1)P^*_i+(n-1)(1-P^*_i)}\right).
+\end{align}
+これより，以下の定理が得られる．
+\begin{theorem}[分類境界]\label{th:Symmetric}
+仮定\ref{ass:P_i}のもとで，カテゴリ$c_i,c_k$は対称性をもつとする．
+このとき，ノイズが生じず$\varepsilon_j=0$の場合に，$P_i>\frac{1}{M}$において，式(\ref{eq:eps_s})が成り立つ．
+\QED \end{theorem} 
+
+\subsection{カテゴリの推定誤り確率}
+ここでは，誤差項$\varepsilon_j$により生じるECOCによるカテゴリ推定誤り確率について述べる． 
+各2値分類器の誤差項は，$\varepsilon_j$は，以下の正規分布にしたがっていると仮定する．\footnote{これは，誤差項の分散が、1-vs-$(M-1)$と2-vs-$(M-2$)で同じであるという強い仮定である．}
+\begin{assumption}\label{ass:eps}
+\begin{align}
+    \varepsilon_j \sim \mathcal{N}(0,\sigma^2).
+\end{align}
+\QED \end{assumption} 
+いま，$c_i$と$c_k$の2値分類器間のハミング距離$d_H$を，
+\begin{equation}\label{eq:d_h_c}
+    d_H(c_i,c_k|W) = \sum_{j \in F} w_{ij} \oplus w_{kj},
+\end{equation}
+とする．
+仮定\ref{ass:eps} と式\eqref{eq:d_h_c}より，式\eqref{eq:eps_s}の左辺は以下のように正規分布に従う．
+\begin{align}
+    \sum_{j = 1}^N (w_{ij} - w_{kj})\varepsilon_j &\sim \mathcal{N}(0,\sum_{j = 1}^N (w_{ij} \oplus w_{kj})\sigma^2)\nonumber\\
+    &=\mathcal{N}(0,d_H(c_i,c_k|W)\sigma^2).
+\end{align}
+$s(c_1,c_2,n|W)$
+ここで式\eqref{eq:eps_s}より$r(\cdot|W)$を以下のように定義する．
+\begin{align}\label{eq:def_r}
+&r(c_i,c_k|W) \nonumber\\&= \frac{\sum_{n = 1}^{M - 1}s(c_i,c_k,n|W)\log\left(\frac{(M - n)(1-P^*_i)}{(M-1)P^*_i+(n-1)(1-P^*_i)}\right)}{\sqrt{d_H(c_i,c_k|W)}}.
+\end{align}
+$c_i$が真のカテゴリであるとき，誤差項$\varepsilon_j$によるカテゴリ$c_i$から$c_k$へのカテゴリ推定誤差確率$C_F(c_i,c_k|W)$は
+\begin{align}\label{eq:C_F}
+    &C_F(c_i,c_k|W) \\&= \int^{r(c_i,c_k|W))\sqrt{d_H(c_i,c_k|W)} }_{-\infty}\mathcal{N}(x|0,d_H(c_i,c_k|W)\sigma^2)dx\nonumber\\
+&=\Phi(r(c_i,c_k|W)/\sigma),
+\end{align}
+とあらわすことができる．このとき，$\Phi(\cdot)$は，標準正規分布の累積分布関数を表す．
+
+\section{符号語表の性能評価}
+前節では，2 つのカテゴリ間のカテゴリ推定誤差を評価した．
+限定されたクラスの符号語表に対しては，式\eqref{eq:C_F}を用いて全体の性能を評価することができる．
+
+$d_H(c_i,c_k|W)$が$i \neq k,\forall i,k \in C$において，等しい時，符号語表は等距離であると呼ぶ．
+例えば，等距離かつ対称性をもつ符号語表には，$n$vRとExhaustive codeがある．
+
+符号語表$W$が等距離かつ対称性をもつならば，\\$r(c_i,c_k|W)$はすべてのカテゴリの組み合わせで同じである．
+したがって，これらのカテゴリ間の$C_F(c_i,c_k|W)$も$i,k \in C$で同じとなる．
+つまり，$r(c_1,c_2|W)$を用いて，$W$の性能を評価することができる．
+
+以上より以下の定理が成り立つ．
+\begin{theorem}[符号語表の性能]\label{th:CodeWordPerformance}
+仮定\ref{ass:P_i}，\ref{ass:eps}のもとで，符号語表$W$が等距離かつ対称性をもつならば，$r(c_i,c_k|W)$と$C_F(c_i,c_k|W)$は全ての$i,k\in C$で同値となる．
+\end{theorem}
+
+\section{誤差項の妥当性}
+仮定\ref{ass:eps}では，誤差項に正規分布を仮定した．
+この仮定の妥当性を検証するために，人工データを用いたシミュレーション実験を行う．
+\subsection{実験データおよび設定}
+カテゴリ数$M$のもとで，データ$\bm{x}_{\rm norm}$は$\mathcal{N}(\bm{x}_{\rm norm}|\bm{\mu}_i, \Sigma)$に従う$M$次元正規乱数より生成する．
+ここで，$\bm{\mu}_i=(\mu_{i1},\ldots,\mu_{iM})$ は各カテゴリ$c_i$の平均ベクトルであり以下のように定義する．
+\begin{align}
+     \mu_{ik} &= \begin{cases}
+    1 & (i=k), \\
+    0 & (i\neq k).
+      \end{cases}
+\end{align}
+分散共分散行列$\Sigma={\rm diag}(\sigma_{i}^2)$ は，$\sigma_{i} = 0.5$, $\forall i\in C$とする．
+この人工データは線形分離可能なデータとなる．
+
+この条件の元で，カテゴリごとに2000個の学習およびテストデータを生成する．
+この学習データから，ロジスティック回帰を用いて2値分類器 $f^{rm L}_j$ を学習する．
+このとき，テストデータ$\bm{x}_{\rm norm}$に対する真の事後確率比と推定事後確率比$\varepsilon^{\rm L}_j(\bm{x})$との差を以下のように定義する．
+\begin{align}\label{eq:ecoc_noise_L}
+    \varepsilon^{\rm L}_j(\bm{x}_{\rm norm}) &= \log\frac{f^{\rm L}_j(\bm{x}_{\rm norm})}{1-f^{\rm L}_j(\bm{x}_{\rm norm})} - \log \frac{f^*_j(\bm{x}_{\rm norm})}{1-f^*_j(\bm{x}_{\rm norm})}.
+\end{align}
+カテゴリ数は$M = 8$とし，符号語表は Exhaustive code および，0,1 を反転した Exhaustive code を用いる．
+\subsection{実験結果}
+実験結果を図\ref{fig:diff_true_prob},\ref{fig:diff_true_prob_nvR}に示す.
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 432 288,width=6.5cm]{./fig/Ex.png} 
+\caption{事後確率比と推定事後確率比の差$\varepsilon^{\rm L}_j$}
+\label{fig:diff_true_prob}
+\end{center}
+\end{figure}
+
+図\ref{fig:diff_true_prob}は，全テストデータと全2値分類器による$\varepsilon^{\rm L}_j(\bm{x})$の相対頻度のヒストグラムおよび$\varepsilon^{\rm L}_j(\bm{x})$のすべての値から算出された平均と分散に基づく確率密度関数である．
+この結果より，データがカテゴリ間で等距離かつ線形分離可能な場合，ロジスティック回帰における真の事後確率比と推定事後確率比の差に，正規分布を仮定するのが妥当であることがわかる．
+
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 432 288,width=6.5cm]{./fig/all_curves.png} 
+\caption{$n$vRごとの事後確率比と推定事後確率比の差$\varepsilon^{\rm L}_j$}
+\label{fig:diff_true_prob_nvR}
+\end{center}
+\end{figure}
+
+
+タイプ$n$の2値分類器のみで構成される$n$vRは，0,1の数が異なるため，推定の難易度が異なる．
+ここで，$M = 8$のでは，構築可能な2値分類器の種類は，1-vs-7，2-vs-6，3-vs-5，4-vs-4の3種となる．
+そこで，図\ref{fig:diff_true_prob}の結果より，$n$vRごとに算出した平均と分散に基づく確率密度関数を図\ref{fig:diff_true_prob_nvR}に示す．
+
+図\ref{fig:diff_true_prob_nvR}より，$n$の値によって，真の事後確率比の分布形状には大きな違いがないことが分かる．
+したがって，各2値分類器の分散は同じであるとした仮定は妥当だと考えられる．
+
+\section{評価関数を用いた符号語表の評価}\label{sec:Eva_f}
+評価関数$r(c_i,c_k|W)$を用いて，符号語表の評価を行う．
+
+$P^*_i$を変化させたときの評価関数$r(c_i,c_k|W)$について図\ref{fig:M=4}，\ref{fig:M=8}に示す．
+ここで，等距離かつ対称性をもつ符号語表として，$n$vR と Exhaustive code を用いる．
+Exhaustive code の符号長（列数）$N$は，カテゴリ数$M$において用いることのできる最大の2値分類器の数である．Exhaustive Codeの符号長$N=2^{M-1} - 1$，符号語間の距離は$2^{M-2}$である．
+
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 432 288,width=7cm]{./fig/r_M=4.png} 
+\caption{評価関数 ($M$ = 4)}
+\label{fig:M=4}
+\end{center}
+\end{figure}
+
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 432 288,width=7cm]{./fig/r_M=8.png} 
+\caption{評価関数 ($M$ = 8)}
+\label{fig:M=8}
+\end{center}
+\end{figure}
+
+
+図\ref{fig:M=4}，\ref{fig:M=8}より，Exhaustive code が$P^*_i$の値に依らず最もよい性能を示すことが分かる.
+これは，符号語間のハミング距離が大きいためと考えられる．
+一方，1vRコードは最も低い性能を示している．このことから，誤差項を含む2値分類器の組み合わせで構成されるECOCでは，ハミング距離が重要であることがわかる．
+しかし，一般的にハミング距離が大きいほど符号長も大きくなる．
+特に Exhaustive codeの符号長は$N = 2^{M-1}-1$であるため，カテゴリ数に対して指数的に増大する．
+そのため，計算量が膨大になるという問題がある．
+
+次に，$M = 8, \sigma^2 = 1$の場合の式\eqref{eq:C_F}の誤り確率 $C_F(c_i,c_k|W)$の計算結果を図\ref{fig:M=8_Pe}に示す．
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 340 214,width=7cm]{./fig/M=8 (2).png} 
+\caption{仮定\ref{ass:P_i}における誤り確率$C_F(c_i,c_k|W)$  ($M$=8)}
+\label{fig:M=8_Pe}
+\end{center}
+\end{figure}
+図\ref{fig:M=8_Pe}より，$C_F(c_i,c_k|W)$の観点では，$\sigma^2 = 1$において，2vRと4vRは大きな違いが無いことが分かる．
+
+\section{評価実験}
+実データによるベンチマークとして，20 News Groups \cite{lang1995newsweeder}を用いる．
+このデータは，文書分類問題のベンチマークデータとして広く用いられるものである．
+
+20 News Groupsは6個の大カテゴリと20個の小カテゴリで構成される．
+本研究では，20個の小カテゴリに対する実験およ6個の大カテゴリからRecreation，Scienceの2つを選択し，そこに含まれる8個の小カテゴリを対象に実験を行った．
+
+\subsection{実験方法および評価}
+誤差項の大きさによるカテゴリ推定の誤り率を評価するために，学習データからサンプリングしたデータを用いて学習を行った．
+分類器には，\ref{sec:Eva_f}節と同様，ロジスティック回帰を用いた．
+
+また，これらの評価に用いた誤り率はカテゴリ間の誤り率$p_e(c_i,c_k)$を平均した$C_E$で以下の式で定義する．
+\begin{align}
+    &p_e(c_i,c_k) \nonumber\\&= \frac{{\rm Number\ of\ data\ misclassified\ from}\ c_i\ {\rm to}\ c_k}{{\rm Number\ of\ data\ belonging\ to}\ c_i},\\
+    C_E &= \frac{\sum_{i,k \in C,i \neq k} p(c_i,c_k)}{M(M -1)}.
+\end{align}
+
+\subsection{実験結果}
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 432 288,width=7.5cm]{./fig/20News_M=8 (2).png} 
+\caption{20 News Groups ($M$ = 8)}
+\label{fig:20_News_M=8}
+\end{center}
+\end{figure}
+
+\begin{figure}[!t]
+\begin{center}
+\includegraphics[bb = 0 0 432 288,width=8.5cm]{./fig/20News_M=20 (2).png} 
+\caption{20 News Groups ($M$ = 20)}
+\label{fig:20_News_M=20}
+\end{center}
+\end{figure}
+
+図\ref{fig:20_News_M=8}，\ref{fig:20_News_M=20}より 1vR が最も誤り率が高いことが分かる．
+加えて，図\ref{fig:20_News_M=8}より，3vR, 4vR, Hadamard matrix, Exhaustive codeはほぼ同じ性能である．
+さらに図\ref{fig:20_News_M=20}より，Hadamard matrix は 1vRより性能が良いことがわかる．
+これらのことから本研究で用いた評価関数は，分類誤り率の小さい符号語表の構成法として一定の戦略を与えることができると考えられる．
+
+\section{考察}
+本研究では，符号語表の性能を解析的に明らかにした．
+これにより，符号語表のハミング距離を大きくすることで，2値分類器の推定事後確率の誤差に対する，カテゴリ推定の誤差への影響が弱くなることがわかった．
+
+さらに，対称性をもつ符号語表は，分類境界も対称であることを示した．
+これらの結果から実データへの適用を考えた場合，以下の2点が考えられる．
+\begin{itemize}
+    \item 分類の難しいデータに対しては，ハミング距離が大きな符号語表を用いる．
+    \item データに基づくカテゴリが等距離である場合には，対称性をもつ符号語表を用いる．
+\end{itemize}
+
+本研究で定義した対称性は，カテゴリ間の分類境界を対称にすることを目的としている。
+この対称性は，カテゴリが等距離である場合に有効である．
+そのため，使用するデータに基づくカテゴリの性質によっては，必ずしも対称性が保たれない．
+カテゴリ間が非対称である場合には，非対称な符号語表を用いることにより，分類誤り率を低下させる可能性があると考えられる．
+今後の課題として，対称性の仮定をどのように緩めるかを検討する必要がある．
+
+\section{まとめと今後の課題}
+本研究では，実験的なアプローチのみで得られた符号語表の性能を理論的に評価できるECOCの性能評価関数を明らかにした．
+この評価関数により，符号語間のハミング距離が，カテゴリの推定誤差確率を低減する主な要因であることがわかった．
+また，実データを用いた実験により，評価関数が分類誤り率の評価にも有効であることがわかった．
+
+本研究の実験的評価では，等距離の符号語表のみを用いて実験を行った．
+本研究で示した評価関数は，非等距離符号語表の場合に推定によって生じる最悪の誤り確率を評価することができると考えられる．
+このことは，本研究で示した符号語表の性能評価が様々な符号語表に拡張できることを示唆している．
+
+ECOCの性能を理論的に解析するために，本研究では様々な仮定を設けた．
+特に，各2値分類器の出力が互いに独立した正規ノイズを含むというのは，強い仮定といえる．
+実験の結果，ロジスティック回帰の場合はこの仮定が有効であることが示された．
+しかし，他の2値分類器における誤差の分布の検証や，正規分布以外の分布の検討については，今後の課題である．
+\section*{謝辞}
+本研究は科研費 18K11585, 18H01438, 19H01721, 19K 04914, 20K04462, 21H04600 の助成を受けたものである．
+% 「参考文献」と書いてあるのが気に入らない場合以下の行を有効にしてください
+% 以下の行は LaTeX2e では有効ですが，LaTeX 2.09では無効です。
+%\renewcommand{\refname}{文献}
+\bibliographystyle{sieicej}
+\bibliography{ref}
+
+
+\end{document}
+
+% end of file

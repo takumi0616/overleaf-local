@@ -1,0 +1,31 @@
+extends ../../layout-marketing
+
+block append meta
+	meta(name='ol-user' data-type='json' content=user)
+
+block content
+	main#main-content.content.content-alt.team-invite
+		.container
+			.row
+				.col-lg-8.m-auto
+					.card.text-center
+						.card-body
+							.page-header
+								h1.text-center !{translate("invited_to_group", {inviterName: inviterName, appName: appName })}
+
+							if accountExists
+								div
+									p #{translate("invited_to_group_login_benefits", {appName: appName})}
+									p #{translate("invited_to_group_login", {emailAddress: emailAddress})}
+									p
+										a.btn.btn-primary(
+											href=`/login?redir=/subscription/invites/${inviteToken}${groupSSOActive ? "&hide_sso_login=true" : ""}`
+										) #{translate("login_to_accept_invitation")}
+							else
+								div
+									p #{translate("invited_to_group_register_benefits", {appName: appName})}
+									p #{translate("invited_to_group_register", {inviterName: inviterName})}
+									p
+										a.btn.btn-primary(
+											href=`/register?redir=/subscription/invites/${inviteToken}${groupSSOActive ? "&hide_sso_login=true" : ""}`
+										) #{translate("register_to_accept_invitation")}

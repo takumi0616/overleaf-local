@@ -1,0 +1,15 @@
+.select-wrapper {
+  position: relative;
+}
+
+.select-trigger {
+  cursor: default;
+
+  & + .form-control-end-icon {
+    pointer-events: none;
+  }
+}
+
+.select-highlighted {
+  background-color: var(--bg-light-secondary);
+}

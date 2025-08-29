@@ -1,0 +1,23 @@
+---
+services:
+  sharelatex:
+    environment:
+      OVERLEAF_SECURE_COOKIE: 'true'
+      OVERLEAF_TRUSTED_PROXY_IPS: "${OVERLEAF_TRUSTED_PROXY_IPS}"
+      # Enabled by default in Server Pro 6.0
+      OVERLEAF_BEHIND_PROXY: 'true'
+
+    depends_on:
+      - nginx
+
+  nginx:
+    image: "${NGINX_IMAGE}"
+    ports:
+      - "${NGINX_TLS_LISTEN_IP:-0.0.0.0}:${TLS_PORT:-443}:443"
+      - "${NGINX_HTTP_LISTEN_IP:-127.0.1.1}:${NGINX_HTTP_PORT:-80}:80"
+    volumes:
+      - "${TLS_PRIVATE_KEY_PATH}:/certs/nginx_key.pem:ro"
+      - "${TLS_CERTIFICATE_PATH}:/certs/nginx_certificate.pem:ro"
+      - "${NGINX_CONFIG_PATH}:/etc/nginx/nginx.conf:ro"
+    restart: always
+    container_name: nginx

@@ -1,0 +1,122 @@
+#! /usr/bin/env bash
+# shellcheck source-path=..
+
+set -euo pipefail
+
+#### Detect Toolkit Project Root ####
+# if realpath is not available, create a semi-equivalent function
+command -v realpath >/dev/null 2>&1 || realpath() {
+  [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+TOOLKIT_ROOT="$(realpath "$SCRIPT_DIR/..")"
+if [[ ! -d "$TOOLKIT_ROOT/bin" ]] || [[ ! -d "$TOOLKIT_ROOT/config" ]]; then
+  echo "ERROR: could not find root of overleaf-toolkit project (inferred project root as '$TOOLKIT_ROOT')"
+  exit 1
+fi
+
+source "$TOOLKIT_ROOT/lib/shared-functions.sh"
+
+function usage() {
+  echo "Usage: bin/up [FLAGS...]"
+  echo ""
+  echo "A wrapper around 'docker compose up'."
+  echo ""
+  echo "This program will pass any extra flags to docker compose,"
+  echo "for example: 'bin/up -d' will run in detached mode"
+}
+
+function check_config() {
+  if [[ ! -f "$TOOLKIT_ROOT/config/overleaf.rc" ]] \
+      || [[ ! -f "$TOOLKIT_ROOT/config/variables.env" ]]; then
+    echo "Config files not found! exiting"
+    exit 1
+  fi
+}
+
+function ensure_data_dirs_exist() {
+  mkdir -p "$TOOLKIT_ROOT/data/git-bridge"
+  mkdir -p "$TOOLKIT_ROOT/data/mongo"
+  mkdir -p "$TOOLKIT_ROOT/data/overleaf"
+  mkdir -p "$TOOLKIT_ROOT/data/redis"
+}
+
+function initiate_mongo_replica_set() {
+  echo "Initiating Mongo replica set..."
+  env SKIP_WARNINGS=true "$TOOLKIT_ROOT/bin/docker-compose" up -d mongo
+  env SKIP_WARNINGS=true "$TOOLKIT_ROOT/bin/docker-compose" exec -T mongo sh -c '
+    while ! '$MONGOSH' --eval "db.version()" > /dev/null; do
+      echo "Waiting for Mongo..."
+      sleep 1
+    done
+    '$MONGOSH' --eval "db.isMaster().primary || rs.initiate({ _id: \"overleaf\", members: [ { _id: 0, host: \"mongo:27017\" } ] })" > /dev/null'
+}
+
+function pull_sandboxed_compiles() {
+  if [[ "${SIBLING_CONTAINERS_PULL:-true}" == "false" ]]; then
+    echo "Skipping pulling of TeX Live images"
+    return
+  fi
+  local images=$(read_variable "ALL_TEX_LIVE_DOCKER_IMAGES")
+  if [[ -z "$images" ]]; then
+    echo
+    echo "Please configure ALL_TEX_LIVE_DOCKER_IMAGES in $TOOLKIT_ROOT/config/variables.env"
+    echo
+    echo "You can read more about configuring Sandboxed Compiles in our documentation:"
+    echo "  https://github.com/overleaf/overleaf/wiki/Server-Pro:-sandboxed-compiles#changing-the-texlive-image"
+    echo
+    exit 1
+  fi
+  echo "Pulling TeX Live images..."
+  for image in ${images//,/ }; do
+    echo "  - $image download started (may take some time)"
+    docker pull $image
+    echo "  - $image download finished"
+  done
+}
+
+function notify_about_not_using_detach_mode() {
+  local detached=false
+  for arg in "$@"; do
+    case "$arg" in
+        -d|--detach) detached=true;;
+    esac
+  done
+  if [[ "$detached" == false ]]; then
+    echo
+    echo '---'
+    echo
+    echo '  NOTICE: You are running "bin/up" without the detach mode ("-d" or "--detach" option). Behind the scenes, we will invoke "docker compose up", which will tail the container logs indefinitely until you issue a keyboard interrupt (CTRL+C).'
+    echo
+    echo '---'
+    echo
+  fi
+}
+
+function __main__() {
+  if [[ "${1:-null}" == "help" ]] || [[ "${1:-null}" == "--help" ]]; then
+    usage
+    exit
+  fi
+
+  read_image_version
+  SKIP_WARNINGS=true read_mongo_version
+  check_config
+  read_config
+
+  ensure_data_dirs_exist
+
+  if [[ "$MONGO_ENABLED" == "true" && "$IMAGE_VERSION_MAJOR" -ge 4 ]]; then
+    initiate_mongo_replica_set
+  fi
+
+  if [[ $SERVER_PRO == "true" && "$SIBLING_CONTAINERS_ENABLED" == "true" ]]; then
+    pull_sandboxed_compiles
+  fi
+
+  notify_about_not_using_detach_mode "$@"
+  exec "$TOOLKIT_ROOT/bin/docker-compose" up "$@"
+}
+
+__main__ "$@"
