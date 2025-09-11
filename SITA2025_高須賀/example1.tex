@@ -1,0 +1,253 @@
+% 第42回情報理論とその応用シンポジウム 予稿集 原稿様式
+% e-pTeX, Version 3.14159265-p3.7.1-161114-2.6 (utf8.euc) (TeX Live 2017/Debian) (preloaded format=platex)
+% 本文: 日本語
+\documentclass{jarticle}
+\usepackage{sita2021}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{bm}
+\usepackage{bbm}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{lscape}
+\usepackage{comment}
+\usepackage{longtable}
+\usepackage{url}
+\usepackage[dvipdfmx]{color}
+%%%%% Theorem environment 定理環境 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{definition}
+%\theoremsymbol{\ensuremath{\Box}}
+\newtheorem{theorem}{定理}
+\newtheorem{prop}{命題}
+\newtheorem{lemma}{補題}
+\newtheorem{cor}{系}
+\newtheorem{example}{例}
+\newtheorem{definition}{定義}
+\newtheorem{rem}{注意}
+\newtheorem{guide}{参考}
+\newtheorem{assumption}{仮定}
+\renewcommand\proofname{\bf 証明}
+\title{
+  %和文の論文題目
+  構造類似度指標の統合によるSOM気圧配置分類法の一考察\\
+  %英文の論文題目
+  Synoptic Pattern Classification via Integrated Structural Similarity Metrics in SOM
+}
+\author{
+  %和文の第一著者名
+  高須賀匠
+  \thanks{ %和文の所属と住所
+    〒940-2188 新潟県長岡市上富岡町1603-1 長岡技術科学大学，
+    %英文の所属と住所
+    Nagaoka University of Technology, 1603-1 Kamitomioka-machi, Nagaoka, Niigata 940-2188, Japan.
+  }\\
+  %英文の第一著者名
+  Takumi Takasuka
+  \and
+  %第二著者名(和文)
+  高野雄紀
+  \thanks{
+    %和文の所属と住所
+    〒305-0052 茨城県つくば市長峰1-1 気象研究所，
+    %英文の所属と住所
+    Meteorological Research Institute, 1-1 Nagamine, Tsukuba, Ibaraki 305-0052, Japan.
+  }\\
+  %第二著者名(英文)
+  Yuki Takano
+  \and
+  渡邊正太郎
+  \thanks {
+    %和文の所属と住所
+    〒107-0052 東京都港区赤坂5-4-7 The HEXAGON 5F 株式会社ウェザーマップ，
+    %英文の所属と住所
+    Weather Map Co., Ltd., The HEXAGON 5F, 5-4-7 Akasaka, Minato-ku, Tokyo 107-0052, Japan.
+  }\\
+  Shotaro Watanabe
+  \and
+  雲居玄道
+  \samethanks{1}\\
+  Gendo Kumoi
+}
+\abstract{
+Self-Organizing Maps (SOM) based on Euclidean distance, which have been dominant in synoptic pattern classification, struggle to capture structural features of spatial fields. This study applies to SOM a structural similarity metric that integrates the Structural Similarity Index (SSIM) with the meteorology-specific Teweles–Wobus score (S1), and evaluates classification performance for sea level pressure (SLP) over Japan. The fused S1+SSIM measure achieved higher macro recall than the conventional Euclidean distance. The proposed structure-aware approach provides a new framework for objective synoptic pattern classification.
+}
+\keywords{
+  Self-Organizing Map (SOM), synoptic pattern classification, structural similarity metrics
+}
+\begin{document}
+\maketitle
+\section{はじめに}
+総観規模の気圧配置パターン分類は，気象予報，気候システムの理解，防災・減災など，多様な応用の基盤技術である．従来の主観分類は専門家知見を直接反映できる一方で，労力・再現性・スケーラビリティに課題があるため，客観的・自動的な分類法が広く研究されてきた．教師ありでは，木村ほか\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}がSVMにより「冬型」「南高北低」「台風型」等の自動検出と検索システムを実装し，実用可能性を示した．しかし，ラベル付与のコストや主観ノイズに起因する学習データ品質の限界が指摘される．教師なしでは，SOM（Self-Organizing Map）が総観パターンの非線形構造を可視化・圧縮する手段として用いられ\cite{philippopoulos2014performance,jiang2013classification}，国内では筆者である高須賀ほか\cite{takasuka2024}が10×10 サイズのbatchSOMにより日本周辺の気圧配置をクラスタリングし，1kmメッシュ天気との結び付けを示した．
+一方，従来の多くのSOMやクラスタリングはユークリッド距離（EUC）を前提としており，勾配・形状・位置などの「構造」を評価しにくいという根源的制約がある．Wang and Bovikによる信号比較の議論に呼応し，DoanらのS-SOM\cite{doan2021s}はBMU探索に構造類似度指標（SSIM）を導入してシルエット係数やトポロジ保存性を改善した．加えて，Sato and Kusaka\cite{SATOTakuto20212021-047}は大規模検証により，勾配ベースのTeweles–Wobusスコア（S1）とSSIMが，EUCや単純相関よりも人間の主観的「似ている」をよく再現することを統計的に示した．さらにWinderlichら\cite{winderlich2024classification}は，改良SSIMを用いたHAC+k-medoidsの二段階法とmedoid表現により，クラス分離性と代表性を両立し，Jensen–Shannon距離で循環統計を総合評価する枠組みを提案している．
+本研究は，これらの先行知見をSOMを基盤とする単一フレームワーク上で統合・比較可能な形に再編することを目的とする．具体的には，GPU最適化Batch-SOMを共通基盤とし，距離（類似度）指標としてEUC，5×5移動窓SSIM（SSIM5），S1，およびS1とSSIM5の単純融合（S1+SSIM5）を同一条件で厳密比較する．併せて，SOMの平均プロトタイプ（centroid）がもたらす「ぼけ」を回避するため，各ノードの代表としてmedoidを出力とし，解釈性と事例検索性を高める．対象は日本域のSLPで，学習（1991–1999）と独立検証（2000）を分離し，Macro Recall，ノード代表の一致性などで汎化性能を評価する．本論文の貢献は次の通りである．
+\begin{itemize}
+  \item SSIM5・S1・EUCをSOMのBMU探索で横並びに比較し，局所構造を評価するSSIM5と勾配評価S1の相補性を定量化（融合指標の有効性を検証）．
+  \item centroidの代替としてmedoid/true-medoidをSOMの標準出力に組み込み，代表パターンの鋭さと説明可能性を向上．
+  \item 先行のS-SOM\cite{doan2021s}や類似度比較\cite{SATOTakuto20212021-047}，HAC+k-medoidsとmedoid表現\cite{winderlich2024classification}の知見を，操作上の一貫性・比較可能性を担保した単一実装に橋渡し．
+\end{itemize}
+本枠組みは，気圧配置の運用的分類・検索への適用（例：\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}）や，気圧配置と天気・空気質の関係可視化（例：\cite{jiang2013classification}）の双方に資する汎用プラットフォームを提供する．
+\section{関連研究}
+\subsection{総観パターン分類：主観・客観・ハイブリッド}
+ヨーロッパの主観分類（Lamb型，Grosswetterlagen）から，客観的な相関法・和平方和法・クラスタリング・PCAに至るまで，総観分類には多様な系譜がある．自動分類ではk-meansやSOMが広く用いられ，Philippopoulosら\cite{philippopoulos2014performance}は南東欧の春季MSLPでSOMとk-meansを比較し，SOMが非線形構造の把握と隣接ノードの位相的連続性に優れると報告した．ニュージーランド域ではJiangら\cite{jiang2013classification}が25型SOM分類を構築し，SOM平面上で局地気象・空気質（NOx, O$_3$）の空間分布を可視化して，総観—局地の連関理解に資することを示した．日本域では高須賀ほか\cite{takasuka2024}がバッチ型SOMにより気圧配置の代表パターンを抽出し，1kmメッシュ天気と整合的な分布を提示している．教師あり分類の系譜として，木村ほか\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}はSVMにより主要6型の自動抽出と検索を実装したが，大量ラベリングのコストと主観ばらつきが課題として残る．
+\subsection{SOMと距離（類似度）指標}
+従来SOMはBMU探索にEUCを用いるが，格子場の比較においてEUCやMSEは構造差（形状・位置・コントラスト）に鈍感である\cite{doan2021s}．DoanらのS-SOM\cite{doan2021s}はBMUにSSIMを導入し，四季・ノード数を跨いでシルエット係数とトポロジ誤差の改善を示した．一方，Sato and Kusaka\cite{SATOTakuto20212021-047}は，教師データにノイズが混入してもS1とSSIMが平均・最大の選択率で優位であり，主観的な地上天気図の「似ている」をEUCより良く再現することを統計的に示した．このことは，勾配評価（S1）と構造評価（SSIM）を併用・融合する設計指針を支持する．
+\subsection{構造類似度とmedoid表現}
+Winderlichら\cite{winderlich2024classification}は，(i) 混合符号データに適用可能な改良SSIM，（ii）HAC+k-medoidsの反復（二段階）クラスタリング，（iii）クラス中心のcentroidではなくmedoid表現，を組み合わせ，クラス分離性・時間安定性・空間解像度頑健性・物理解釈性を満たす天気型分類を構築した．さらに，CMIP6歴史実験の循環表現を，頻度・遷移・持続の確率分布に対するJensen–Shannon距離で総合評価する枠組みを提示している．本研究はHACではなくSOMを基盤に据え，SSIM・S1・EUC等の代替指標をSOMのBMU探索に一貫実装し，SOM特有のトポロジ保持と「地図化」の利点を保ちながら，medoid/true-medoid出力で代表性の劣化（centroidのぼけ）を抑える点に特徴がある．
+\subsection{本研究の位置付けとギャップ}
+先行研究は，（a）SOMのBMUにSSIMを用いる効果\cite{doan2021s}，（b）類似度指標の統計比較におけるS1・SSIMの優位\cite{SATOTakuto20212021-047}，（c）改良SSIMとmedoidによる高分離クラスタリング\cite{winderlich2024classification}，（d）SOMによる総観—局地（天気・空気質）連関の可視化\cite{jiang2013classification}，をそれぞれ個別に示してきた．しかし，SOMという同一基盤上でEUC/SSIM5/S1/融合を横並びに比較し，かつmedoid表現をSOMの標準出力として実用化した研究は見当たらない．また，国内の最新SOM応用\cite{takasuka2024}では距離指標の詳細比較やmedoid化は扱われていない．本研究は，GPU最適化Batch-SOMを共通プラットフォームとして，距離（類似度）指標の厳密比較とmedoid出力を同時に実現し，東アジアSLPに対する学習・独立検証で汎化性能を定量評価することで，これらのギャップを埋める．
+\section{提案手法}
+\subsection{GPU最適化Batch-SOM}
+本研究では，大規模データに対応可能なGPU最適化Batch-SOMを実装した．学習アルゴリズムは以下の通りである：
+1. ミニバッチ単位でBMU（Best Matching Unit）を探索
+2. 近傍関数$h_{ij}$を用いて各ノードの更新量を蓄積
+3. エポック終了時に一括更新
+近傍関数の幅$\sigma$は反復回数に応じて漸減させ，最終的な収束を促進する．
+\subsection{距離指標の実装}
+以下の4種類の距離指標を実装し，BMU探索に使用した：
+\subsubsection{ユークリッド距離（EUC）}
+\begin{equation}
+d_{\mathrm{EUC}}(x,w) = \sqrt{\sum_{s\in\Omega} (x(s)-w(s))^2 + \varepsilon}
+\end{equation}
+ここで，$\Omega$は格子領域，$\varepsilon = 10^{-12}$は数値安定化項である．
+\subsubsection{5×5移動窓SSIM（SSIM5）}
+Doan et al.\cite{doan2021s}の仕様に準拠し，局所窓での評価を行う：
+\begin{equation}
+\mathrm{SSIM}_{5\times5}(x,w) = \frac{1}{|\Omega|}\sum_{s\in\Omega} \mathrm{SSIM}_{\mathrm{loc}}(s)
+\end{equation}
+ここで，$\mathrm{SSIM}_{\mathrm{loc}}(s)$は画素$s$を中心とする5×5窓での局所SSIM値である．
+\begin{equation}
+d_{\mathrm{SSIM5}}(x,w) = 1 - \mathrm{SSIM}_{5\times5}(x,w)
+\end{equation}
+\subsubsection{Teweles-Wobusスコア（S1）}
+水平勾配の差を評価する気象学的指標：
+\begin{equation}
+S1(x,w) = 100 \times \frac{\sum_{(i,j)\in E_x \cup E_y} |\Delta x_{ij} - \Delta w_{ij}|}{\sum_{(i,j)\in E_x \cup E_y} \max(|\Delta x_{ij}|, |\Delta w_{ij}|) + \varepsilon}
+\end{equation}
+\subsubsection{S1とSSIM5の融合（S1+SSIM5）}
+各距離を正規化後，等重み平均：
+\begin{equation}
+d_{\mathrm{S1+SSIM5}} = 0.5 \times \tilde{d}_{\mathrm{S1}} + 0.5 \times \tilde{d}_{\mathrm{SSIM5}}
+\end{equation}
+\subsection{Medoid表現の導入}
+SOMの各ノードに対して，以下の2種類の代表を出力：
+\begin{itemize}
+\item \textbf{Centroid}：ノードに割り当てられた全サンプルの平均
+\item \textbf{Medoid}：ノード内の全サンプルとの総距離が最小となる実サンプル
+\end{itemize}
+\section{実験設定}
+\subsection{データと前処理}
+\begin{itemize}
+\item \textbf{物理量}：海面更正気圧（SLP）
+\item \textbf{領域}：東アジア域（15-55°N, 115-155°E）
+\item \textbf{期間}：学習1991-1999年，検証2000年（日次09JST）
+\item \textbf{ラベル}：参考文献\cite{吉野2002日本の気候}の付録B「気圧配置ごよみ」準拠
+\item \textbf{前処理}：Pa→hPa変換後，領域平均を引く．
+\end{itemize}
+\subsection{データのラベル詳細}
+本研究で用いるラベル体系は，参考文献\cite{吉野2002日本の気候}の付録B「気圧配置ごよみ」に準拠する．以下に主要な基本型（1〜6，計15基本型）と複合的な型（複合型）を示す．
+
+\begin{description}
+\item[1. 西高東低冬型] 冬季に特徴的なシベリア高気圧とアリューシャン低気圧に起因する西高東低の場．
+\item[2. 気圧の谷型] 低気圧あるいは気圧の谷の通過に対応する型．サブタイプは次の通り：
+  \begin{description}
+    \item[A.] 低気圧が北海道またはサハリン付近を東に進む．
+    \item[B.] 低気圧が日本海から北東に進む．
+    \item[C.] 低気圧が台湾から日本の太平洋岸を東〜東北東に進む．
+    \item[D.] 二つ玉低気圧，または日本海と太平洋に低圧部．
+  \end{description}
+\item[3. 移動性高気圧型] 移動性高気圧に覆われる型．サブタイプは次の通り：
+  \begin{description}
+    \item[A.] 日本の北方または北部を東に進む．
+    \item[B.] 日本列島上（主として本州上）を東に進む．
+    \item[C.] 帯状高気圧．
+    \item[D.] 日本の太平洋岸または南方を東に進む．
+  \end{description}
+\item[4. 前線型] 停滞性の前線が卓越する型．サブタイプは次の通り：
+  \begin{description}
+    \item[A.] 日本列島上をほぼ東西方向に走る主として停滞性の前線．
+    \item[B.] 太平洋岸または日本南方をほぼ東西方向に走る主として停滞性の前線．
+  \end{description}
+\item[5. 南高北低夏型] 原則として北太平洋高気圧が日本列島を支配する夏型．
+\item[6. 台風型] 台風の位置に応じて次のサブタイプに区分：
+  \begin{description}
+    \item[A.] 台風が南九州より南方の海上にある場合．
+    \item[B.] 台風が本州およびその接岸地帯にある場合．
+    \item[C.] 台風が北日本にある場合．
+  \end{description}
+\item[移行型] 例えば「3A - 2D」のように，異なる基本型間の移行過程を示す型．
+\item[複合型] 例えば「2A + 2C」のように，複数の型が同時に現れる複合的な場．
+\end{description}
+
+実験では，1〜6のサブタイプまでの15個の型を「基本型」とし，評価指標の「基本ラベル」に用いる．一方で複合的な型は補助的な評価として「複合ラベル」の評価に含める設定とした（詳細の定義は参考文献\cite{吉野2002日本の気候}を参照）．
+
+\subsection{SOM設定}
+\begin{itemize}
+\item マップサイズ：10×10
+\item 反復回数：1,000
+\item バッチサイズ：128
+\item 初期近傍幅：3.0
+\item 学習率：1.0
+\end{itemize}
+\subsection{評価指標}
+\begin{itemize}
+\item \textbf{Macro Recall}：基本ラベル（15種）および複合ラベルでの平均再現率
+\item \textbf{NodewiseMatchRate}：ノード内において多数決によって最多となるラベル(代表ラベル)とmedoidラベルの一致率
+\end{itemize}
+\section{実験結果}
+\subsection{総合性能比較}
+表1に各距離指標のMacro Recall結果を示す．
+\begin{table}[h]
+\caption{距離指標別のMacro Recall}
+\centering
+\begin{tabular}{lcccc}
+\hline
+距離指標 & \multicolumn{2}{c}{学習期間} & \multicolumn{2}{c}{検証期間} \\
+& 基本 & 複合 & 基本 & 複合 \\
+\hline
+EUC & 0.2544 & 0.1863 & 0.1958 & 0.1595 \\
+SSIM5 & 0.2960 & 0.2060 & 0.2531 & 0.1917 \\
+S1 & \textbf{0.3466} & 0.2329 & 0.2754 & 0.1850 \\
+S1+SSIM5 & 0.3443 & \textbf{0.2361} & \textbf{0.3501} & \textbf{0.2157} \\
+\hline
+\end{tabular}
+\end{table}
+学習期間での基本ラベルによる評価ではS1が最高性能（0.3466）を示したが，その他の評価においてS1+SSIM5が最良となった．SSIM5は局所構造の評価により，EUCを上回る性能を示した．
+\subsection{代表性評価}
+NodewiseMatchRateの結果：
+\begin{itemize}
+\item S1：47.0\%（47/100ノード一致）
+\item S1+SSIM5：40.0\%（40/100ノード一致）
+\item SSIM5：30.3\%（30/99ノード一致）
+\item EUC：34.0\%（34/100ノード一致）
+\end{itemize}
+S1系の指標で高い一致率を示し，medoid表現の妥当性が確認された．
+\subsection{ラベル別性能}
+主要なラベルの再現率を以下に示す：
+\begin{itemize}
+\item \textbf{高再現率}：ラベル1（冬型，0.878-0.951），3B（西風系，0.736-0.895）
+\item \textbf{中程度}：4A（移動性高気圧，0.4-0.8，手法により変動）
+\item \textbf{低再現率}：2B，2C，3C，3D，5（境界曖昧），6A-6C（サンプル希少）
+\end{itemize}
+\section{最良の距離指標に関する結果}
+総合的な評価において最高性能を示したS1+SSIM5に関する詳細を以下に示す．
+Centroid準拠のSOMマップを図\ref{fig:s1ssim_som_node_avg_all}に，Medoid準拠のマップを図\ref{fig:s1ssim_som_node_true_medoid_all}に示す．
+\begin{figure}[!t] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/s1ssim_som_node_avg_all.png} \caption{Centroid準拠のSOMマップ（S1+SSIM5）} \label{fig:s1ssim_som_node_avg_all} \end{figure}
+\begin{figure}[!t] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/s1ssim_som_node_true_medoid_all.png} \caption{Medoid準拠のSOMマップ（S1+SSIM5）} \label{fig:s1ssim_som_node_true_medoid_all} \end{figure}
+\section{考察}
+\subsection{距離指標の特性}
+S1は勾配情報を直接評価するため，前線帯や冬型など勾配構造が支配的なパターンで優れた性能を示した．一方，SSIM5は局所的な構造類似性を評価し，台風など形状・位置が重要なパターンに有効であった．S1+SSIM5の融合により，両者の長所を活かし，汎化性能が向上したと考えられる．
+\subsection{Medoid表現の有効性}
+図\ref{fig:s1ssim_som_node_avg_all}に示すように，centroidでは平均化により気圧勾配が平滑化される傾向があったが，図\ref{fig:s1ssim_som_node_true_medoid_all}に示すmedoidでは実際の気圧パターンの鋭い特徴が保持された．これにより，現業での解釈性と事例検索への応用可能性が高まった．
+\section{まとめ}
+本研究では，GPU最適化Batch-SOMを基盤として，4種類の距離指標を厳密に比較する実験環境を構築した．主な成果は以下の通りである：
+1. 検証期間においてS1+SSIM5が最高のMacro Recall（0.3501）を達成
+2. SSIM5が局所構造評価により有効性を確認
+3. Medoid表現により解釈性と代表性が向上
+本研究は，Doan et al.\cite{doan2021s}のS-SOM，Sato and Kusaka\cite{SATOTakuto20212021-047}の類似度比較，Winderlich et al.\cite{winderlich2024classification}のmedoid表現の知見を，SOMを基盤とする統一フレームワークへと橋渡しするものである．今後は，多変量化や季節別学習，Jensen-Shannon距離による循環表現評価等への拡張を予定している．
+\section*{謝辞}
+本研究の一部は，JSPS科研費の助成を受けて実施された．
+
+\bibliographystyle{sieicej}
+\bibliography{ref}
+\end{document}

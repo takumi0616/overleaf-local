@@ -16,3 +16,4 @@ overleaf-toolkit/data/**/*
 # user defined files
 .env
 overleaf/docker-compose.override.yml
+document/results_v5
