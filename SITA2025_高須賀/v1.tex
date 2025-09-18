@@ -28,6 +28,12 @@
 \newtheorem{guide}{参考}
 \newtheorem{assumption}{仮定}
 \renewcommand\proofname{\bf 証明}
+\newcommand{\halfeq}[2][0.85\linewidth]{%
+  \begin{equation}
+    \makebox[\linewidth][l]{\resizebox{#1}{!}{\ensuremath{#2}}}%
+  \end{equation}
+}
+
 \title{
   %和文の論文題目
   構造類似度指標の統合によるSOM気圧配置分類法の一考察\\
@@ -70,71 +76,106 @@
   Gendo Kumoi
 }
 \abstract{
-Self-Organizing Maps (SOM) based on Euclidean distance, which have been dominant in synoptic pattern classification, struggle to capture structural features of spatial fields. This study applies to SOM a structural similarity metric that integrates the Structural Similarity Index (SSIM) with the meteorology-specific Teweles–Wobus score (S1), and evaluates classification performance for sea level pressure (SLP) over Japan. The fused S1+SSIM measure achieved higher macro recall than the conventional Euclidean distance. The proposed structure-aware approach provides a new framework for objective synoptic pattern classification.
-}
+Self-Organizing Maps (SOM) with EUCLIDEAN often fail to capture structural characteristics of spatial fields. This study implements and compares eight activation distances for SOM-based synoptic pattern classification over Japan: existing single methods S1, SSIM5, EUCLIDEAN; proposed single methods KAPPA, GSSIM; and proposed composite methods S1,KA (impl: s1k), GS,KA (impl: gk), S1,GS,KA (impl: s1gk). On a unified GPU-optimized batch-SOM framework, we evaluate generalization by Macro Recall (base labels only) and a nodewise medoid–majority consistency rate. The framework outputs medoids instead of centroids to preserve sharp representative patterns. This paper documents the exact mathematical definitions used and the experimental protocol; quantitative figures are omitted here and are available in the generated logs/CSV.}
 \keywords{
   Self-Organizing Map (SOM), synoptic pattern classification, structural similarity metrics
 }
 \begin{document}
 \maketitle
+
 \section{はじめに}
 総観規模の気圧配置パターン分類は，気象予報，気候システムの理解，防災・減災など，多様な応用の基盤技術である．従来の主観分類は専門家知見を直接反映できる一方で，労力・再現性・スケーラビリティに課題があるため，客観的・自動的な分類法が広く研究されてきた．教師ありでは，木村ほか\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}がSVMにより「冬型」「南高北低」「台風型」等の自動検出と検索システムを実装し，実用可能性を示した．しかし，ラベル付与のコストや主観ノイズに起因する学習データ品質の限界が指摘される．教師なしでは，SOM（Self-Organizing Map）が総観パターンの非線形構造を可視化・圧縮する手段として用いられ\cite{philippopoulos2014performance,jiang2013classification}，国内では筆者である高須賀ほか\cite{takasuka2024}が10×10 サイズのbatchSOMにより日本周辺の気圧配置をクラスタリングし，1kmメッシュ天気との結び付けを示した．
-一方，従来の多くのSOMやクラスタリングはユークリッド距離（EUC）を前提としており，勾配・形状・位置などの「構造」を評価しにくいという根源的制約がある．Wang and Bovikによる信号比較の議論に呼応し，DoanらのS-SOM\cite{doan2021s}はBMU探索に構造類似度指標（SSIM）を導入してシルエット係数やトポロジ保存性を改善した．加えて，Sato and Kusaka\cite{SATOTakuto20212021-047}は大規模検証により，勾配ベースのTeweles–Wobusスコア（S1）とSSIMが，EUCや単純相関よりも人間の主観的「似ている」をよく再現することを統計的に示した．さらにWinderlichら\cite{winderlich2024classification}は，改良SSIMを用いたHAC+k-medoidsの二段階法とmedoid表現により，クラス分離性と代表性を両立し，Jensen–Shannon距離で循環統計を総合評価する枠組みを提案している．
-本研究は，これらの先行知見をSOMを基盤とする単一フレームワーク上で統合・比較可能な形に再編することを目的とする．具体的には，GPU最適化Batch-SOMを共通基盤とし，距離（類似度）指標としてEUC，5×5移動窓SSIM（SSIM5），S1，およびS1とSSIM5の単純融合（S1+SSIM5）を同一条件で厳密比較する．併せて，SOMの平均プロトタイプ（centroid）がもたらす「ぼけ」を回避するため，各ノードの代表としてmedoidを出力とし，解釈性と事例検索性を高める．対象は日本域のSLPで，学習（1991–1999）と独立検証（2000）を分離し，Macro Recall，ノード代表の一致性などで汎化性能を評価する．本論文の貢献は次の通りである．
+
+従来の多くのSOMやクラスタリングはEUCLIDEANを前提としており，勾配・形状・位置などの「構造」を評価しにくいという制約がある．S-SOM\cite{doan2021s}はBMU探索に構造類似度指標（SSIM）を導入してトポロジ保存性を改善した．また，Sato and Kusaka\cite{SATOTakuto20212021-047}は，勾配ベースのS1とSSIMが，EUCLIDEANや単純相関よりも人間の主観的「似ている」をよく再現することを統計的に示した．さらにWinderlichら\cite{winderlich2024classification}は，改良SSIMとmedoid表現により，クラス分離性と代表性を両立する枠組みを提案している．
+
+本研究は，Batch-SOMにおいて，既存手法（単一手法）S1，SSIM5，EUCLIDEANと，提案手法（単一手法）KAPPA，GSSIM，および提案手法（複合手法）S1,KA（実装名：s1k），GS,KA（実装名：gk），S1,GS,KA（実装名：s1gk）の計8手法を同一条件で厳密比較する．SOMの代表としてcentroidではなくmedoid（true medoid）を出力して解釈性を高め，学習（1991–1997）と独立検証（1998–2000）の分離により汎化性能を評価する．評価は基本ラベル（15種）のMacro Recallと，ノード多数決（基本ラベル）とmedoid（基本ラベル）の一致率で行う．
+
+\section{提案枠組み}
+\subsection{Batch-SOM}
+バッチ版SOMをGPUで実装した．各イテレーションで，ミニバッチごとにBMUを探索し，近傍関数$h_{ij}$により分子・分母を蓄積して一括更新する．近傍幅$\sigma$は学習全体の進行$t$に応じて減衰（非増加）させる．入力は各時刻のSLP偏差（hPa）をベクトル化したものである．
+
+\subsection{距離（類似度）指標の分類と定義}
+本稿では，手法を次のように紹介・使用する（括弧内は実装名）．矢印「→」の右側が原稿中の正式名称である．
 \begin{itemize}
-  \item SSIM5・S1・EUCをSOMのBMU探索で横並びに比較し，局所構造を評価するSSIM5と勾配評価S1の相補性を定量化（融合指標の有効性を検証）．
-  \item centroidの代替としてmedoid/true-medoidをSOMの標準出力に組み込み，代表パターンの鋭さと説明可能性を向上．
-  \item 先行のS-SOM\cite{doan2021s}や類似度比較\cite{SATOTakuto20212021-047}，HAC+k-medoidsとmedoid表現\cite{winderlich2024classification}の知見を，操作上の一貫性・比較可能性を担保した単一実装に橋渡し．
+  \item 既存手法（単一手法）：S1（s1）／ SSIM5（ssim5）／ EUCLIDEAN（euclidean）
+  \item 提案手法（単一手法）：KAPPA（kappa）／ GSSIM（gssim）
+  \item 提案手法（複合手法）：s1k→\textbf{S1,KA}／ gk→\textbf{GS,KA}／ s1gk→\textbf{S1,GS,KA}
 \end{itemize}
-本枠組みは，気圧配置の運用的分類・検索への適用（例：\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}）や，気圧配置と天気・空気質の関係可視化（例：\cite{jiang2013classification}）の双方に資する汎用プラットフォームを提供する．
-\section{関連研究}
-\subsection{総観パターン分類：主観・客観・ハイブリッド}
-ヨーロッパの主観分類（Lamb型，Grosswetterlagen）から，客観的な相関法・和平方和法・クラスタリング・PCAに至るまで，総観分類には多様な系譜がある．自動分類ではk-meansやSOMが広く用いられ，Philippopoulosら\cite{philippopoulos2014performance}は南東欧の春季MSLPでSOMとk-meansを比較し，SOMが非線形構造の把握と隣接ノードの位相的連続性に優れると報告した．ニュージーランド域ではJiangら\cite{jiang2013classification}が25型SOM分類を構築し，SOM平面上で局地気象・空気質（NOx, O$_3$）の空間分布を可視化して，総観—局地の連関理解に資することを示した．日本域では高須賀ほか\cite{takasuka2024}がバッチ型SOMにより気圧配置の代表パターンを抽出し，1kmメッシュ天気と整合的な分布を提示している．教師あり分類の系譜として，木村ほか\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}はSVMにより主要6型の自動抽出と検索を実装したが，大量ラベリングのコストと主観ばらつきが課題として残る．
-\subsection{SOMと距離（類似度）指標}
-従来SOMはBMU探索にEUCを用いるが，格子場の比較においてEUCやMSEは構造差（形状・位置・コントラスト）に鈍感である\cite{doan2021s}．DoanらのS-SOM\cite{doan2021s}はBMUにSSIMを導入し，四季・ノード数を跨いでシルエット係数とトポロジ誤差の改善を示した．一方，Sato and Kusaka\cite{SATOTakuto20212021-047}は，教師データにノイズが混入してもS1とSSIMが平均・最大の選択率で優位であり，主観的な地上天気図の「似ている」をEUCより良く再現することを統計的に示した．このことは，勾配評価（S1）と構造評価（SSIM）を併用・融合する設計指針を支持する．
-\subsection{構造類似度とmedoid表現}
-Winderlichら\cite{winderlich2024classification}は，(i) 混合符号データに適用可能な改良SSIM，（ii）HAC+k-medoidsの反復（二段階）クラスタリング，（iii）クラス中心のcentroidではなくmedoid表現，を組み合わせ，クラス分離性・時間安定性・空間解像度頑健性・物理解釈性を満たす天気型分類を構築した．さらに，CMIP6歴史実験の循環表現を，頻度・遷移・持続の確率分布に対するJensen–Shannon距離で総合評価する枠組みを提示している．本研究はHACではなくSOMを基盤に据え，SSIM・S1・EUC等の代替指標をSOMのBMU探索に一貫実装し，SOM特有のトポロジ保持と「地図化」の利点を保ちながら，medoid/true-medoid出力で代表性の劣化（centroidのぼけ）を抑える点に特徴がある．
-\subsection{本研究の位置付けとギャップ}
-先行研究は，（a）SOMのBMUにSSIMを用いる効果\cite{doan2021s}，（b）類似度指標の統計比較におけるS1・SSIMの優位\cite{SATOTakuto20212021-047}，（c）改良SSIMとmedoidによる高分離クラスタリング\cite{winderlich2024classification}，（d）SOMによる総観—局地（天気・空気質）連関の可視化\cite{jiang2013classification}，をそれぞれ個別に示してきた．しかし，SOMという同一基盤上でEUC/SSIM5/S1/融合を横並びに比較し，かつmedoid表現をSOMの標準出力として実用化した研究は見当たらない．また，国内の最新SOM応用\cite{takasuka2024}では距離指標の詳細比較やmedoid化は扱われていない．本研究は，GPU最適化Batch-SOMを共通プラットフォームとして，距離（類似度）指標の厳密比較とmedoid出力を同時に実現し，東アジアSLPに対する学習・独立検証で汎化性能を定量評価することで，これらのギャップを埋める．
-\section{提案手法}
-\subsection{GPU最適化Batch-SOM}
-本研究では，大規模データに対応可能なGPU最適化Batch-SOMを実装した．学習アルゴリズムは以下の通りである：
-1. ミニバッチ単位でBMU（Best Matching Unit）を探索
-2. 近傍関数$h_{ij}$を用いて各ノードの更新量を蓄積
-3. エポック終了時に一括更新
-近傍関数の幅$\sigma$は反復回数に応じて漸減させ，最終的な収束を促進する．
-\subsection{距離指標の実装}
-以下の4種類の距離指標を実装し，BMU探索に使用した：
-\subsubsection{ユークリッド距離（EUC）}
+
+以下，正式名称で数式定義を与える．$x,w$は入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$，$\varepsilon=10^{-12}$とする．
+
+\subsubsection*{既存手法（単一手法）}
+\paragraph{S1（実装名：s1）}
+\halfeq[0.90\linewidth]{%
+S1(x,w)=100\times
+\frac{\sum\limits_{(i,j)}|\Delta_x^x(i,j)-\Delta_x^w(i,j)|+\sum\limits_{(i,j)}|\Delta_y^x(i,j)-\Delta_y^w(i,j)|}
+{\sum\limits_{(i,j)}\max(|\Delta_x^x(i,j)|,|\Delta_x^w(i,j)|)+\sum\limits_{(i,j)}\max(|\Delta_y^x(i,j)|,|\Delta_y^w(i,j)|)+\varepsilon}%
+}
+ここで$\Delta_x^x(i,j)=x(i,j+1)-x(i,j)$，$\Delta_y^x(i,j)=x(i+1,j)-x(i,j)$，$w$側も同様．
+
+\paragraph{SSIM5（実装名：ssim5）}
+\halfeq[0.90\linewidth]{%
+d_{\mathrm{SSIM5}}(x,w)=1-\frac{1}{|\Omega|}\sum_{s\in\Omega}
+\frac{\bigl(2\,\mu_x(s)\mu_w(s)\bigr)\bigl(2\,\operatorname{cov}_{xw}(s)\bigr)}
+{\bigl(\mu_x(s)^2+\mu_w(s)^2\bigr)\bigl(\sigma_x^2(s)+\sigma_w^2(s)\bigr)+\varepsilon}%
+}
+$\mu,\sigma^2,\operatorname{cov}$は5×5移動平均，境界はreflect．
+
+\paragraph{EUCLIDEAN（実装名：euclidean）}
 \begin{equation}
-d_{\mathrm{EUC}}(x,w) = \sqrt{\sum_{s\in\Omega} (x(s)-w(s))^2 + \varepsilon}
+d_{\mathrm{EUC}}(x,w)=\sqrt{\sum_{s\in\Omega}\bigl(x(s)-w(s)\bigr)^2+\varepsilon}.
 \end{equation}
-ここで，$\Omega$は格子領域，$\varepsilon = 10^{-12}$は数値安定化項である．
-\subsubsection{5×5移動窓SSIM（SSIM5）}
-Doan et al.\cite{doan2021s}の仕様に準拠し，局所窓での評価を行う：
+
+\subsubsection*{提案手法（単一手法）}
+\paragraph{KAPPA（実装名：kappa）}
+\halfeq[0.90\linewidth]{%
+d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
+\frac{\sum\limits_{i,j}\bigl|\kappa(x)(i,j)-\kappa(w)(i,j)\bigr|}
+{\sum\limits_{i,j}\max\!\bigl(|\kappa(x)(i,j)|,|\kappa(w)(i,j)|\bigr)+\varepsilon}%
+}
+$\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価．
+
+\paragraph{GSSIM（実装名：gssim）}
+\halfeq[0.90\linewidth]{%
+d_{\mathrm{GS}}(x,w)=1-
+\frac{\sum\limits_{i,j} \max(G^x,G^w)\;
+\frac{2G^xG^w}{(G^x)^2+(G^w)^2+\varepsilon}\;
+\tfrac{1}{2}\!\left(1+\frac{g_x^x g_x^w+g_y^x g_y^w}{G^x G^w+\varepsilon}\right)
+}{\sum\limits_{i,j}\max(G^x,G^w)+\varepsilon}%
+}
+$g_x^\cdot,g_y^\cdot$は内部格子の一次差分，$G^\cdot=\sqrt{(g_x^\cdot)^2+(g_y^\cdot)^2+\varepsilon}$．
+
+\subsubsection*{提案手法（複合手法）}
+複合手法は行方向（入力$x$固定，候補$w$方向）min–max正規化を介したRMS統合である．
+\paragraph{S1,KA（実装名：s1k）}
+\begin{align}
+\tilde d_{\mathrm{S1}}(x,w)&=\frac{d_{\mathrm{S1}}(x,w)-\min_{w'}d_{\mathrm{S1}}(x,w')}{\max_{w'}d_{\mathrm{S1}}(x,w')-\min_{w'}d_{\mathrm{S1}}(x,w')+\varepsilon},\\
+\tilde d_{\mathrm{KA}}(x,w)&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon},\\
+d_{\mathrm{S1,KA}}(x,w)&=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}.
+\end{align}
+
+\paragraph{GS,KA（実装名：gk）}
 \begin{equation}
-\mathrm{SSIM}_{5\times5}(x,w) = \frac{1}{|\Omega|}\sum_{s\in\Omega} \mathrm{SSIM}_{\mathrm{loc}}(s)
+\begin{aligned}
+\tilde d_{\mathrm{KA}}(x,w)
+&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon},\\
+d_{\mathrm{GS,KA}}(x,w)
+&=\sqrt{\frac{d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}.
+\end{aligned}
 \end{equation}
-ここで，$\mathrm{SSIM}_{\mathrm{loc}}(s)$は画素$s$を中心とする5×5窓での局所SSIM値である．
+
+\paragraph{S1,GS,KA（実装名：s1gk）}
 \begin{equation}
-d_{\mathrm{SSIM5}}(x,w) = 1 - \mathrm{SSIM}_{5\times5}(x,w)
+d_{\mathrm{S1,GS,KA}}(x,w)=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{3}}.
 \end{equation}
-\subsubsection{Teweles-Wobusスコア（S1）}
-水平勾配の差を評価する気象学的指標：
+
+\subsection{Medoid（true medoid）表現}
+SOMの各ノードに割り当てられたインデックス集合$I_c$に対し，ノード内総距離
 \begin{equation}
-S1(x,w) = 100 \times \frac{\sum_{(i,j)\in E_x \cup E_y} |\Delta x_{ij} - \Delta w_{ij}|}{\sum_{(i,j)\in E_x \cup E_y} \max(|\Delta x_{ij}|, |\Delta w_{ij}|) + \varepsilon}
+\mathrm{cost}(i)=\sum_{j\in I_c} d\bigl(X_j, X_i\bigr)
 \end{equation}
-\subsubsection{S1とSSIM5の融合（S1+SSIM5）}
-各距離を正規化後，等重み平均：
-\begin{equation}
-d_{\mathrm{S1+SSIM5}} = 0.5 \times \tilde{d}_{\mathrm{S1}} + 0.5 \times \tilde{d}_{\mathrm{SSIM5}}
-\end{equation}
-\subsection{Medoid表現の導入}
-SOMの各ノードに対して，以下の2種類の代表を出力：
-\begin{itemize}
-\item \textbf{Centroid}：ノードに割り当てられた全サンプルの平均
-\item \textbf{Medoid}：ノード内の全サンプルとの総距離が最小となる実サンプル
-\end{itemize}
+が最小となる実サンプル$X_{i^\star}$（$i^\star=\arg\min_{i\in I_c}\mathrm{cost}(i)$）をそのノードのtrue medoidとする．$d(\cdot,\cdot)$は上記いずれかの距離である．
+
 \section{実験設定}
 \subsection{データと前処理}
 \begin{itemize}
@@ -179,74 +220,55 @@ SOMの各ノードに対して，以下の2種類の代表を出力：
 \item[複合型] 例えば「2A + 2C」のように，複数の型が同時に現れる複合的な場．
 \end{description}
 
-実験では，1〜6のサブタイプまでの15個の型を「基本型」とし，評価指標の「基本ラベル」に用いる．一方で複合的な型は補助的な評価として「複合ラベル」の評価に含める設定とした（詳細の定義は参考文献\cite{吉野2002日本の気候}を参照）．
+実験では，1〜6のサブタイプまでの15個の型を「基本型」とし，評価指標の「基本ラベル」に用いる．一方で複合的な型は評価に含めない設定とした（詳細の定義は参考文献\cite{吉野2002日本の気候}を参照）．
 
-\subsection{SOM設定}
+\subsection{SOM設定と学習条件}
 \begin{itemize}
-\item マップサイズ：10×10
-\item 反復回数：1,000
-\item バッチサイズ：128
-\item 初期近傍幅：3.0
-\item 学習率：1.0
+\item マップサイズ：$10\times 10$
+\item 反復回数：$1000$，バッチサイズ：$128$
+\item 近傍関数：ガウス，初期$\sigma=2.5$（学習全体で減衰）
+\item 学習率：$0.5$
 \end{itemize}
+
 \subsection{評価指標}
 \begin{itemize}
-\item \textbf{Macro Recall}：基本ラベル（15種）および複合ラベルでの平均再現率
-\item \textbf{NodewiseMatchRate}：ノード内において多数決によって最多となるラベル(代表ラベル)とmedoidラベルの一致率
+\item Macro Recall（基本ラベル）：各基本ラベルの再現率の平均．混同行列は「基本ラベル vs クラスタ列」で集計．
+\item NodewiseMatchRate（基本）：各ノードの多数決（基本ラベル）とtrue medoidの基本ラベルの一致率．
 \end{itemize}
-\section{実験結果}
-\subsection{総合性能比較}
-表1に各距離指標のMacro Recall結果を示す．
-\begin{table}[h]
-\caption{距離指標別のMacro Recall}
-\centering
-\begin{tabular}{lcccc}
-\hline
-距離指標 & \multicolumn{2}{c}{学習期間} & \multicolumn{2}{c}{検証期間} \\
-& 基本 & 複合 & 基本 & 複合 \\
-\hline
-EUC & 0.2544 & 0.1863 & 0.1958 & 0.1595 \\
-SSIM5 & 0.2960 & 0.2060 & 0.2531 & 0.1917 \\
-S1 & \textbf{0.3466} & 0.2329 & 0.2754 & 0.1850 \\
-S1+SSIM5 & 0.3443 & \textbf{0.2361} & \textbf{0.3501} & \textbf{0.2157} \\
-\hline
-\end{tabular}
-\end{table}
-学習期間での基本ラベルによる評価ではS1が最高性能（0.3466）を示したが，その他の評価においてS1+SSIM5が最良となった．SSIM5は局所構造の評価により，EUCを上回る性能を示した．
-\subsection{代表性評価}
-NodewiseMatchRateの結果：
+学習期および独立検証期に対して算出する．
+
+\section{実験結果（実装出力に基づく記述）}
+本実装は手法ごとに以下を自動出力する：
 \begin{itemize}
-\item S1：47.0\%（47/100ノード一致）
-\item S1+SSIM5：40.0\%（40/100ノード一致）
-\item SSIM5：30.3\%（30/99ノード一致）
-\item EUC：34.0\%（34/100ノード一致）
+\item 学習ログ（\texttt{learning\_result/\{impl\}\_som/\{impl\}\_results.log}）：量子化誤差，Macro Recall（基本），NodewiseMatchRate
+\item 割当CSV（学習全体）：BMU座標・原ラベル
+\item 混同行列（基本ラベルのみ），ラベル別再現率（基本）のCSV
+\item 検証ログ・CSV（\texttt{verification\_results/\{impl\}\_som/}以下）
 \end{itemize}
-S1系の指標で高い一致率を示し，medoid表現の妥当性が確認された．
-\subsection{ラベル別性能}
-主要なラベルの再現率を以下に示す：
-\begin{itemize}
-\item \textbf{高再現率}：ラベル1（冬型，0.878-0.951），3B（西風系，0.736-0.895）
-\item \textbf{中程度}：4A（移動性高気圧，0.4-0.8，手法により変動）
-\item \textbf{低再現率}：2B，2C，3C，3D，5（境界曖昧），6A-6C（サンプル希少）
-\end{itemize}
-\section{最良の距離指標に関する結果}
-総合的な評価において最高性能を示したS1+SSIM5に関する詳細を以下に示す．
-Centroid準拠のSOMマップを図\ref{fig:s1ssim_som_node_avg_all}に，Medoid準拠のマップを図\ref{fig:s1ssim_som_node_true_medoid_all}に示す．
-\begin{figure}[!t] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/s1ssim_som_node_avg_all.png} \caption{Centroid準拠のSOMマップ（S1+SSIM5）} \label{fig:s1ssim_som_node_avg_all} \end{figure}
-\begin{figure}[!t] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/s1ssim_som_node_true_medoid_all.png} \caption{Medoid準拠のSOMマップ（S1+SSIM5）} \label{fig:s1ssim_som_node_true_medoid_all} \end{figure}
+構造に敏感な指標（S1，SSIM系，KA，および複合 S1,KA／GS,KA／S1,GS,KA）は，EUCLIDEANと異なるクラスタ構造と代表性（medoid）を与える．行方向min–max正規化によりスケール差を緩和し，勾配・構造・曲率の情報を統合する複合手法はBMU探索のロバスト性向上が期待される．
+
 \section{考察}
-\subsection{距離指標の特性}
-S1は勾配情報を直接評価するため，前線帯や冬型など勾配構造が支配的なパターンで優れた性能を示した．一方，SSIM5は局所的な構造類似性を評価し，台風など形状・位置が重要なパターンに有効であった．S1+SSIM5の融合により，両者の長所を活かし，汎化性能が向上したと考えられる．
+\subsection{手法の特性と補完性}
+S1は勾配差の比率に基づき前線帯や冬型で有効．SSIM5は局所構造（形状・位置・コントラスト）を評価．GSSIMは勾配強度と方向の両面を重み付きで評価．KAPPAは等圧面の曲率構造に注目する．複合（S1,KA／GS,KA／S1,GS,KA）はこれらの利点をRMS統合で併合し，BMU探索における汎化を支える．
+
 \subsection{Medoid表現の有効性}
-図\ref{fig:s1ssim_som_node_avg_all}に示すように，centroidでは平均化により気圧勾配が平滑化される傾向があったが，図\ref{fig:s1ssim_som_node_true_medoid_all}に示すmedoidでは実際の気圧パターンの鋭い特徴が保持された．これにより，現業での解釈性と事例検索への応用可能性が高まった．
+centroidは平均化により勾配が平滑化されやすい一方，medoidは実データ実現値を代表として保持し，解釈性と検索性を高める．本実装はノード内総距離最小（true medoid）を標準で算出する．
+
 \section{まとめ}
-本研究では，GPU最適化Batch-SOMを基盤として，4種類の距離指標を厳密に比較する実験環境を構築した．主な成果は以下の通りである：
-1. 検証期間においてS1+SSIM5が最高のMacro Recall（0.3501）を達成
-2. SSIM5が局所構造評価により有効性を確認
-3. Medoid表現により解釈性と代表性が向上
-本研究は，Doan et al.\cite{doan2021s}のS-SOM，Sato and Kusaka\cite{SATOTakuto20212021-047}の類似度比較，Winderlich et al.\cite{winderlich2024classification}のmedoid表現の知見を，SOMを基盤とする統一フレームワークへと橋渡しするものである．今後は，多変量化や季節別学習，Jensen-Shannon距離による循環表現評価等への拡張を予定している．
-\section*{謝辞}
-本研究の一部は，JSPS科研費の助成を受けて実施された．
+GPU最適化Batch-SOM上で，既存手法（S1，SSIM5，EUCLIDEAN）と提案手法（KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で行った．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．
+
+\section*{付録：数式内の変数説明}
+\begin{itemize}
+\item $x,w$：入力パターンとノード重み（$H\times W$の格子場）
+\item $\Omega$：格子領域の添字集合，$|\Omega|$は格子点数
+\item $\mu_x(s),\mu_w(s)$：画素$s$近傍（5×5）での局所平均
+\item $\sigma_x^2(s),\sigma_w^2(s)$：同局所分散
+\item $\operatorname{cov}_{xw}(s)$：同局所共分散
+\item $\Delta_x^\cdot,\Delta_y^\cdot$：水平方向・鉛直方向の一次差分
+\item $g_x^\cdot,g_y^\cdot$：内部共通格子での勾配成分，$G^\cdot$：勾配強度
+\item $\bm{n}$：正規化勾配ベクトル，$\kappa(z)=\nabla\cdot\bm{n}$（中心差分）
+\item $\varepsilon$：数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
 
 \bibliographystyle{sieicej}
 \bibliography{ref}
