@@ -76,7 +76,7 @@
   Gendo Kumoi
 }
 \abstract{
-Self-Organizing Maps (SOM) with EUCLIDEAN often fail to capture structural characteristics of spatial fields. This study implements and compares eight activation distances for SOM-based synoptic pattern classification over Japan: existing single methods S1, SSIM5, EUCLIDEAN; proposed single methods KAPPA, GSSIM; and proposed composite methods S1,KA (impl: s1k), GS,KA (impl: gk), S1,GS,KA (impl: s1gk). On a unified GPU-optimized batch-SOM framework, we evaluate generalization by Macro Recall (base labels only) and a nodewise medoid–majority consistency rate. The framework outputs medoids instead of centroids to preserve sharp representative patterns. This paper documents the exact mathematical definitions used and the experimental protocol; quantitative figures are omitted here and are available in the generated logs/CSV.}
+This study presents a comprehensive comparison of distance metrics for synoptic pattern classification using Self-Organizing Maps (SOM). We implemented Batch-SOM with four distance metrics: Euclidean (EUC), Structural Similarity Index with 5×5 moving window (SSIM5), Teweles-Wobus score (S1), and their fusion (S1+SSIM5). Using sea level pressure data from the broader Japan region (1991-1999 for training, 2000 for validation), we evaluated classification performance through Macro-averaged Recall and medoid representation quality. Results show that S1+SSIM5 demonstrated superior generalization. We also introduced medoid and true-medoid representations to address the "blurring" effect of centroid averaging, enhancing interpretability of SOM output maps for operational use. This framework bridges recent advances in structural similarity metrics and contributes to future developments in pressure pattern classification.}
 \keywords{
   Self-Organizing Map (SOM), synoptic pattern classification, structural similarity metrics
 }
@@ -88,24 +88,24 @@ Self-Organizing Maps (SOM) with EUCLIDEAN often fail to capture structural chara
 
 従来の多くのSOMやクラスタリングはEUCLIDEANを前提としており，勾配・形状・位置などの「構造」を評価しにくいという制約がある．S-SOM\cite{doan2021s}はBMU探索に構造類似度指標（SSIM）を導入してトポロジ保存性を改善した．また，Sato and Kusaka\cite{SATOTakuto20212021-047}は，勾配ベースのS1とSSIMが，EUCLIDEANや単純相関よりも人間の主観的「似ている」をよく再現することを統計的に示した．さらにWinderlichら\cite{winderlich2024classification}は，改良SSIMとmedoid表現により，クラス分離性と代表性を両立する枠組みを提案している．
 
-本研究は，Batch-SOMにおいて，既存手法（単一手法）S1，SSIM5，EUCLIDEANと，提案手法（単一手法）KAPPA，GSSIM，および提案手法（複合手法）S1,KA（実装名：s1k），GS,KA（実装名：gk），S1,GS,KA（実装名：s1gk）の計8手法を同一条件で厳密比較する．SOMの代表としてcentroidではなくmedoid（true medoid）を出力して解釈性を高め，学習（1991–1997）と独立検証（1998–2000）の分離により汎化性能を評価する．評価は基本ラベル（15種）のMacro Recallと，ノード多数決（基本ラベル）とmedoid（基本ラベル）の一致率で行う．
+本研究は，Batch-SOMにおいて，既存手法（単一手法）S1，SSIM5，EUCLIDEANと，提案手法（単一手法）KAPPA，GSSIM，および提案手法（複合手法）S1,KA，GS,KA，S1,GS,KAの計8手法を同一条件で厳密比較する．SOMの代表としてcentroidではなくmedoid（true medoid）を出力して解釈性を高め，学習（1991–1997）と独立検証（1998–2000）の分離により汎化性能を評価する．評価は基本ラベル（15種）のMacro Recallと，ノード多数決（基本ラベル）とmedoid（基本ラベル）の一致率で行う．
 
 \section{提案枠組み}
 \subsection{Batch-SOM}
 バッチ版SOMをGPUで実装した．各イテレーションで，ミニバッチごとにBMUを探索し，近傍関数$h_{ij}$により分子・分母を蓄積して一括更新する．近傍幅$\sigma$は学習全体の進行$t$に応じて減衰（非増加）させる．入力は各時刻のSLP偏差（hPa）をベクトル化したものである．
 
 \subsection{距離（類似度）指標の分類と定義}
-本稿では，手法を次のように紹介・使用する（括弧内は実装名）．矢印「→」の右側が原稿中の正式名称である．
+本稿では，手法を次のように紹介・使用する．
 \begin{itemize}
-  \item 既存手法（単一手法）：S1（s1）／ SSIM5（ssim5）／ EUCLIDEAN（euclidean）
-  \item 提案手法（単一手法）：KAPPA（kappa）／ GSSIM（gssim）
-  \item 提案手法（複合手法）：s1k→\textbf{S1,KA}／ gk→\textbf{GS,KA}／ s1gk→\textbf{S1,GS,KA}
+  \item 既存手法（単一手法）：S1／ SSIM5／ EUCLIDEAN
+  \item 提案手法（単一手法）：KAPPA／ GSSIM
+  \item 提案手法（複合手法）：\textbf{S1,KA}／ \textbf{GS,KA}／ \textbf{S1,GS,KA}
 \end{itemize}
 
 以下，正式名称で数式定義を与える．$x,w$は入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$，$\varepsilon=10^{-12}$とする．
 
 \subsubsection*{既存手法（単一手法）}
-\paragraph{S1（実装名：s1）}
+\paragraph{S1}
 \halfeq[0.90\linewidth]{%
 S1(x,w)=100\times
 \frac{\sum\limits_{(i,j)}|\Delta_x^x(i,j)-\Delta_x^w(i,j)|+\sum\limits_{(i,j)}|\Delta_y^x(i,j)-\Delta_y^w(i,j)|}
@@ -113,7 +113,7 @@ S1(x,w)=100\times
 }
 ここで$\Delta_x^x(i,j)=x(i,j+1)-x(i,j)$，$\Delta_y^x(i,j)=x(i+1,j)-x(i,j)$，$w$側も同様．
 
-\paragraph{SSIM5（実装名：ssim5）}
+\paragraph{SSIM5}
 \halfeq[0.90\linewidth]{%
 d_{\mathrm{SSIM5}}(x,w)=1-\frac{1}{|\Omega|}\sum_{s\in\Omega}
 \frac{\bigl(2\,\mu_x(s)\mu_w(s)\bigr)\bigl(2\,\operatorname{cov}_{xw}(s)\bigr)}
@@ -121,13 +121,13 @@ d_{\mathrm{SSIM5}}(x,w)=1-\frac{1}{|\Omega|}\sum_{s\in\Omega}
 }
 $\mu,\sigma^2,\operatorname{cov}$は5×5移動平均，境界はreflect．
 
-\paragraph{EUCLIDEAN（実装名：euclidean）}
+\paragraph{EUCLIDEAN}
 \begin{equation}
 d_{\mathrm{EUC}}(x,w)=\sqrt{\sum_{s\in\Omega}\bigl(x(s)-w(s)\bigr)^2+\varepsilon}.
 \end{equation}
 
 \subsubsection*{提案手法（単一手法）}
-\paragraph{KAPPA（実装名：kappa）}
+\paragraph{KAPPA}
 \halfeq[0.90\linewidth]{%
 d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
 \frac{\sum\limits_{i,j}\bigl|\kappa(x)(i,j)-\kappa(w)(i,j)\bigr|}
@@ -135,7 +135,7 @@ d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
 }
 $\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価．
 
-\paragraph{GSSIM（実装名：gssim）}
+\paragraph{GSSIM}
 \halfeq[0.90\linewidth]{%
 d_{\mathrm{GS}}(x,w)=1-
 \frac{\sum\limits_{i,j} \max(G^x,G^w)\;
@@ -147,14 +147,14 @@ $g_x^\cdot,g_y^\cdot$は内部格子の一次差分，$G^\cdot=\sqrt{(g_x^\cdot)
 
 \subsubsection*{提案手法（複合手法）}
 複合手法は行方向（入力$x$固定，候補$w$方向）min–max正規化を介したRMS統合である．
-\paragraph{S1,KA（実装名：s1k）}
+\paragraph{S1,KA}
 \begin{align}
 \tilde d_{\mathrm{S1}}(x,w)&=\frac{d_{\mathrm{S1}}(x,w)-\min_{w'}d_{\mathrm{S1}}(x,w')}{\max_{w'}d_{\mathrm{S1}}(x,w')-\min_{w'}d_{\mathrm{S1}}(x,w')+\varepsilon},\\
 \tilde d_{\mathrm{KA}}(x,w)&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon},\\
 d_{\mathrm{S1,KA}}(x,w)&=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}.
 \end{align}
 
-\paragraph{GS,KA（実装名：gk）}
+\paragraph{GS,KA}
 \begin{equation}
 \begin{aligned}
 \tilde d_{\mathrm{KA}}(x,w)
@@ -164,7 +164,7 @@ d_{\mathrm{GS,KA}}(x,w)
 \end{aligned}
 \end{equation}
 
-\paragraph{S1,GS,KA（実装名：s1gk）}
+\paragraph{S1,GS,KA}
 \begin{equation}
 d_{\mathrm{S1,GS,KA}}(x,w)=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{3}}.
 \end{equation}
@@ -238,14 +238,7 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
 学習期および独立検証期に対して算出する．
 
 \section{実験結果（実装出力に基づく記述）}
-本実装は手法ごとに以下を自動出力する：
-\begin{itemize}
-\item 学習ログ（\texttt{learning\_result/\{impl\}\_som/\{impl\}\_results.log}）：量子化誤差，Macro Recall（基本），NodewiseMatchRate
-\item 割当CSV（学習全体）：BMU座標・原ラベル
-\item 混同行列（基本ラベルのみ），ラベル別再現率（基本）のCSV
-\item 検証ログ・CSV（\texttt{verification\_results/\{impl\}\_som/}以下）
-\end{itemize}
-構造に敏感な指標（S1，SSIM系，KA，および複合 S1,KA／GS,KA／S1,GS,KA）は，EUCLIDEANと異なるクラスタ構造と代表性（medoid）を与える．行方向min–max正規化によりスケール差を緩和し，勾配・構造・曲率の情報を統合する複合手法はBMU探索のロバスト性向上が期待される．
+
 
 \section{考察}
 \subsection{手法の特性と補完性}
