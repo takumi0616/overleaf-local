@@ -102,6 +102,19 @@ This study presents a comprehensive comparison of distance metrics for synoptic 
   \item 提案手法（複合手法）：\textbf{S1,KA}／ \textbf{GS,KA}／ \textbf{S1,GS,KA}
 \end{itemize}
 
+% 追加: 各距離指標の抽象的な概念（提案枠組み）
+\paragraph*{各距離指標の抽象的な概念（提案枠組み）}
+\begin{description}
+\item[EUCLIDEAN] 値の差の総量（振幅・位置ずれを含む）に基づく素朴な距離．広域の正負異常の強さ・分布の総合差を測る．
+\item[SSIM5] 5×5の局所平均・分散・共分散から，局所の明るさ・コントラスト・構造の一致度を測る．中心や帯の微妙な位置・強度差に敏感．
+\item[S1] 一次差分（勾配）の相対誤差に基づき，前線帯の鋭さ・広がり・配置の一致を測る．加法定数に不変で，鋭い勾配の位置ズレに敏感．
+\item[GSSIM] 勾配強度と方向（$\cos\theta$）の一致度を，強いエッジほど重く評価して測る．長い前線の向き・濃さの一致に重みが乗る．
+\item[KAPPA] 正規化勾配の発散（曲率）から等圧線の曲がり（凹凸・渦の閉じ具合）を比べる．振幅よりも幾何（丸さ・湾曲）を評価．
+\item[S1,KA] S1（鋭さ）とKAPPA（曲がり）を行方向min–max正規化後にRMS統合．形と鋭さの同時一致を重視し，BMU順位を安定化．
+\item[GS,KA] GSSIM（エッジの強さ・向き）とKAPPA（曲率）を統合．輪郭の方向性と曲がりの両方を一致させたい場合に有効．
+\item[S1,GS,KA] S1（鋭さ）・GSSIM（方向）・KAPPA（曲率）の三要素を総合する最も多面的な距離．人の視覚的類似に近い判断を狙う．
+\end{description}
+
 以下，正式名称で数式定義を与える．$x,w$は入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$，$\varepsilon=10^{-12}$とする．
 
 \subsubsection*{既存手法（単一手法）}
