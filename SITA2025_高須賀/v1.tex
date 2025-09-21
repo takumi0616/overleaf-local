@@ -15,6 +15,7 @@
 \usepackage{longtable}
 \usepackage{url}
 \usepackage[dvipdfmx]{color}
+\usepackage{float}
 %%%%% Theorem environment 定理環境 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \theoremstyle{definition}
 %\theoremsymbol{\ensuremath{\Box}}
@@ -203,6 +204,9 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
 
 \begin{description}
 \item[1. 西高東低冬型] 冬季に特徴的なシベリア高気圧とアリューシャン低気圧に起因する西高東低の場．
+
+\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19910109.png} \caption{西高東低冬型（ラベル:1）の画像} \label{fig:slp_anom_19910109} \end{figure}
+
 \item[2. 気圧の谷型] 低気圧あるいは気圧の谷の通過に対応する型．サブタイプは次の通り：
   \begin{description}
     \item[A.] 低気圧が北海道またはサハリン付近を東に進む．
@@ -210,6 +214,9 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
     \item[C.] 低気圧が台湾から日本の太平洋岸を東〜東北東に進む．
     \item[D.] 二つ玉低気圧，または日本海と太平洋に低圧部．
   \end{description}
+
+\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19941001.png} \caption{気圧の谷型（ラベル:2A）の画像} \label{fig:slp_anom_19941001} \end{figure}
+
 \item[3. 移動性高気圧型] 移動性高気圧に覆われる型．サブタイプは次の通り：
   \begin{description}
     \item[A.] 日本の北方または北部を東に進む．
@@ -217,18 +224,30 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
     \item[C.] 帯状高気圧．
     \item[D.] 日本の太平洋岸または南方を東に進む．
   \end{description}
+
+\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19920406.png} \caption{移動性高気圧型（ラベル:3A）の画像} \label{fig:slp_anom_19920406} \end{figure}
+
 \item[4. 前線型] 停滞性の前線が卓越する型．サブタイプは次の通り：
   \begin{description}
     \item[A.] 日本列島上をほぼ東西方向に走る主として停滞性の前線．
     \item[B.] 太平洋岸または日本南方をほぼ東西方向に走る主として停滞性の前線．
   \end{description}
+
+\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19930707.png} \caption{前線型（ラベル:4A）の画像} \label{fig:slp_anom_19930707} \end{figure}
+
 \item[5. 南高北低夏型] 原則として北太平洋高気圧が日本列島を支配する夏型．
+
+\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19990728.png} \caption{南高北低夏型（ラベル:5）の画像} \label{fig:slp_anom_19990728} \end{figure}
+
 \item[6. 台風型] 台風の位置に応じて次のサブタイプに区分：
   \begin{description}
     \item[A.] 台風が南九州より南方の海上にある場合．
     \item[B.] 台風が本州およびその接岸地帯にある場合．
     \item[C.] 台風が北日本にある場合．
   \end{description}
+
+\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19910819.png} \caption{台風型（ラベル:6A）の画像} \label{fig:slp_anom_19910819} \end{figure}
+  
 \item[移行型] 例えば「3A - 2D」のように，異なる基本型間の移行過程を示す型．
 \item[複合型] 例えば「2A + 2C」のように，複数の型が同時に現れる複合的な場．
 \end{description}
@@ -251,7 +270,85 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
 学習期および独立検証期に対して算出する．
 
 \section{実験結果}
+本節では，seed値を1〜50の間で50回試行した集計結果を示す．まず，手法別のMacro Recall（学習・検証）およびNodewiseMatchRate（学習）の要約統計を同一表（表\ref{tab:macro_nodewise_summary}）にまとめて示す．続いて，基本ラベルごとの平均再現率の横断ピボット表を，学習（表\ref{tab:pivot_train}）と検証（表\ref{tab:pivot_valid}）でそれぞれ提示する（表が大きいため横向き・大判で示す）．
 
+seed=1〜50の50試行において学習期のMacro RecallはS1,KA／S1,GS,KA／GS,KAが約0.37$\pm$0.02で最上位であった．検証期ではS1,KAが0.23$\pm$0.02で最良となった．すなわち，構造（曲率）と鋭さ（勾配）を統合するS1,KAが汎化で優位である．一方，NodewiseMatchRate（学習）は複合手法のスコアが低い．る．
+
+ラベル別では学習期の台風系6AでS1,KAがCorrect平均3.66・Recall0.61と突出し，6BはS1が相対的に良好であった．ただし検証期の6A/6B/6Cはいずれも再現率が極めて低く，稀少クラスの課題が顕著だった．ERA5の基本ラベル分布が大きく不均衡（例：1=10.3％，3B=8.8％，6A=0.19％，6C=0.055％）で，複合ラベルが約52.7％を占めることがこの傾向の一因である．以上より，実運用ではS1,KAを標準距離としつつ，代表整合の確認にEUCLIDEANを併用する構成が妥当と考える（表\ref{tab:macro_nodewise_summary}とピボット表参照）．
+
+
+\begin{table}[H]
+\centering
+\caption{手法別 Macro Recall（学習・検証）と NodewiseMatchRate（学習）の統計（Mean$\pm$Std, N=50）}
+\label{tab:macro_nodewise_summary}
+\resizebox{0.95\linewidth}{!}{
+\begin{tabular}{lccc}
+\hline
+Method & Macro Recall（学習） & Macro Recall（検証） & NodewiseMatchRate（学習） \\
+\hline
+S1,KA      & 0.37$\pm$0.02 & 0.23$\pm$0.02 & 0.25$\pm$0.03 \\
+S1,GS,KA   & 0.37$\pm$0.02 & 0.22$\pm$0.02 & 0.24$\pm$0.04 \\
+GS,KA      & 0.37$\pm$0.02 & 0.21$\pm$0.01 & 0.25$\pm$0.05 \\
+S1         & 0.36$\pm$0.02 & 0.21$\pm$0.02 & 0.26$\pm$0.04 \\
+GSSIM      & 0.35$\pm$0.02 & 0.21$\pm$0.02 & 0.27$\pm$0.04 \\
+SSIM5      & 0.32$\pm$0.02 & 0.17$\pm$0.01 & 0.29$\pm$0.04 \\
+EUCLIDEAN  & 0.30$\pm$0.02 & 0.18$\pm$0.01 & 0.31$\pm$0.03 \\
+KAPPA      & 0.30$\pm$0.01 & 0.21$\pm$0.02 & 0.29$\pm$0.03 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\clearpage
+\begin{landscape}
+\begin{table}[t]
+\centering
+\caption{横断ピボット表（学習: 基本ラベルごとの平均再現率）}
+\label{tab:pivot_train}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\resizebox{0.90\linewidth}{!}{
+\begin{tabular}{lcccccccccccccccccc}
+\hline
+Method & 1 & 2A & 2B & 2C & 2D & 3A & 3B & 3C & 3D & 4A & 4B & 5 & 6A & 6B & 6C & Overall & N\_lab \\
+\hline
+S1,KA      & 0.92 & 0.26 & 0.24 & 0.14 & 0.60 & 0.21 & 0.79 & 0.05 & 0.01 & 0.68 & 0.35 & 0.59 & 0.61 & 0.10 & 0.00 & 0.37 & 15 \\
+S1,GS,KA   & 0.91 & 0.35 & 0.27 & 0.07 & 0.61 & 0.20 & 0.79 & 0.08 & 0.02 & 0.66 & 0.34 & 0.59 & 0.45 & 0.17 & 0.00 & 0.37 & 15 \\
+GS,KA      & 0.90 & 0.32 & 0.27 & 0.07 & 0.62 & 0.21 & 0.79 & 0.07 & 0.02 & 0.66 & 0.35 & 0.63 & 0.41 & 0.17 & 0.00 & 0.37 & 15 \\
+S1         & 0.91 & 0.29 & 0.21 & 0.13 & 0.61 & 0.22 & 0.77 & 0.05 & 0.02 & 0.66 & 0.37 & 0.54 & 0.49 & 0.20 & 0.00 & 0.36 & 15 \\
+GSSIM      & 0.91 & 0.27 & 0.18 & 0.09 & 0.59 & 0.19 & 0.75 & 0.06 & 0.02 & 0.63 & 0.31 & 0.55 & 0.56 & 0.18 & 0.00 & 0.35 & 15 \\
+SSIM5      & 0.90 & 0.13 & 0.07 & 0.17 & 0.45 & 0.22 & 0.70 & 0.06 & 0.16 & 0.59 & 0.36 & 0.44 & 0.42 & 0.14 & 0.04 & 0.32 & 15 \\
+EUCLIDEAN  & 0.91 & 0.22 & 0.12 & 0.05 & 0.48 & 0.35 & 0.74 & 0.05 & 0.14 & 0.57 & 0.22 & 0.33 & 0.34 & 0.06 & 0.00 & 0.30 & 15 \\
+KAPPA      & 0.88 & 0.25 & 0.22 & 0.10 & 0.45 & 0.06 & 0.78 & 0.07 & 0.01 & 0.68 & 0.26 & 0.62 & 0.04 & 0.04 & 0.00 & 0.30 & 15 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{横断ピボット表（検証: 基本ラベルごとの平均再現率）}
+\label{tab:pivot_valid}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\resizebox{0.90\linewidth}{!}{
+\begin{tabular}{lcccccccccccccccccc}
+\hline
+Method & 1 & 2A & 2B & 2C & 2D & 3A & 3B & 3C & 3D & 4A & 4B & 5 & 6A & 6B & 6C & Overall & N\_lab \\
+\hline
+S1,KA      & 0.91 & 0.21 & 0.03 & 0.00 & 0.57 & 0.00 & 0.80 & 0.00 & 0.00 & 0.73 & 0.08 & 0.09 & 0.00 & 0.00 & 0.00 & 0.23 & 15 \\
+S1,GS,KA   & 0.92 & 0.20 & 0.02 & 0.00 & 0.45 & 0.02 & 0.80 & 0.00 & 0.00 & 0.64 & 0.08 & 0.12 & 0.00 & 0.01 & 0.00 & 0.22 & 15 \\
+GSSIM      & 0.93 & 0.09 & 0.02 & 0.00 & 0.48 & 0.02 & 0.78 & 0.00 & 0.00 & 0.53 & 0.10 & 0.14 & 0.00 & 0.11 & 0.00 & 0.21 & 15 \\
+GS,KA      & 0.93 & 0.14 & 0.04 & 0.00 & 0.44 & 0.03 & 0.79 & 0.00 & 0.00 & 0.62 & 0.08 & 0.14 & 0.00 & 0.00 & 0.00 & 0.21 & 15 \\
+S1         & 0.95 & 0.04 & 0.01 & 0.00 & 0.53 & 0.01 & 0.77 & 0.00 & 0.00 & 0.65 & 0.06 & 0.08 & 0.02 & 0.04 & 0.00 & 0.21 & 15 \\
+KAPPA      & 0.91 & 0.15 & 0.00 & 0.00 & 0.31 & 0.00 & 0.73 & 0.00 & 0.00 & 0.74 & 0.05 & 0.20 & 0.00 & 0.00 & 0.00 & 0.21 & 15 \\
+EUCLIDEAN  & 0.86 & 0.04 & 0.00 & 0.00 & 0.29 & 0.00 & 0.83 & 0.00 & 0.00 & 0.66 & 0.01 & 0.01 & 0.00 & 0.00 & 0.00 & 0.18 & 15 \\
+SSIM5      & 0.86 & 0.00 & 0.00 & 0.01 & 0.28 & 0.00 & 0.78 & 0.00 & 0.00 & 0.52 & 0.08 & 0.05 & 0.00 & 0.00 & 0.00 & 0.17 & 15 \\
+\hline
+\end{tabular}
+}
+\end{table}
+\end{landscape}
 
 \section{考察}
 \subsection{手法の特性と補完性}
@@ -260,8 +357,14 @@ S1は勾配差の比率に基づき前線帯や冬型で有効．SSIM5は局所�
 \subsection{Medoid表現の有効性}
 centroidは平均化により勾配が平滑化されやすい一方，medoidは実データ実現値を代表として保持し，解釈性と検索性を高める．本実装はノード内総距離最小（true medoid）を標準で算出する．
 
-\section{まとめ}
-GPU最適化Batch-SOM上で，既存手法（S1，SSIM5，EUCLIDEAN）と提案手法（KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で行った．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．
+\subsection{汎化性能の解釈}
+S1は勾配差に敏感，KAPPAは曲率（幾何）を評価するため，S1,KAは形状と鋭さを同時に捉えBMU探索の頑健性を高める．その結果，検証Macro Recallで最良を示した．一方，NodewiseMatchRateではEUCLIDEANが最大であり，ノード内多数決とmedoidラベルの一致を生みやすい（振幅差に整合）．用途により，識別（Macro Recall）優先か，ノード代表性（一致率）優先かで距離の使い分けが必要である．
+
+\subsection{ラベル不均衡と評価設計}
+台風系（6A/6B/6C）は出現頻度が極端に低く，さらに複合場が約半数を占めるため，検証で再現率が低下しやすい．季節別SOM（冬・梅雨・台風季）や階層的分類（大局型→サブタイプ），外部事象フラグの併用（台風客観解析）により稀少クラスの頑健性を補える．前提に扱う．
+
+\sectionBatch-SOM上で，既存手法（S1，SSIM5，EUCLIDEAN）と提案手法（KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で行った．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．S1,KAのスコアが高く実務ではS1,KAの運用が望ましい．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．しい．
+\end{itemize}
 
 \section*{付録：数式内の変数説明}
 \begin{itemize}
@@ -274,6 +377,37 @@ GPU最適化Batch-SOM上で，既存手法（S1，SSIM5，EUCLIDEAN）と提案�
 \item $g_x^\cdot,g_y^\cdot$：内部共通格子での勾配成分，$G^\cdot$：勾配強度
 \item $\bm{n}$：正規化勾配ベクトル，$\kappa(z)=\nabla\cdot\bm{n}$（中心差分）
 \item $\varepsilon$：数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
+
+\bibliographystyle{sieicej}
+\bibliography{ref}
+\end{document}
+ilon$：数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
+
+\bibliographystyle{sieicej}
+\bibliography{ref}
+\end{document}
+)=\nabla\cdot\bm{n}$（中心差分）
+\item $\varepsilon$：数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
+
+\bibliographystyle{sieicej}
+\bibliography{ref}
+\end{document}
+数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
+
+\bibliographystyle{sieicej}
+\bibliography{ref}
+\end{document}
+数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
+
+\bibliographystyle{sieicej}
+\bibliography{ref}
+\end{document}
+定化の微小正値（$10^{-12}$）
 \end{itemize}
 
 \bibliographystyle{sieicej}
