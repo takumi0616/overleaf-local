@@ -61,7 +61,7 @@
     Meteorological Research Institute, 1-1 Nagamine, Tsukuba, Ibaraki 305-0052, Japan.
   }\\
   %第二著者名(英文)
-  Yuki Takano
+  Yuki H. Takano
   \and
   渡邊正太郎
   \thanks {
@@ -85,11 +85,15 @@ This study presents a comprehensive comparison of distance metrics for synoptic 
 \maketitle
 
 \section{はじめに}
-総観規模の気圧配置パターン分類は，気象予報，気候システムの理解，防災・減災など，多様な応用の基盤技術である．従来の主観分類は専門家知見を直接反映できる一方で，労力・再現性・スケーラビリティに課題があるため，客観的・自動的な分類法が広く研究されてきた．教師ありでは，木村ほか\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}がサポートベクターマシン（Support Vector Machine; SVM）により「冬型」「南高北低」「台風型」等の自動検出と検索システムを実装し，実用可能性を示した．しかし，ラベル付与のコストや主観ノイズに起因する学習データ品質の限界が指摘される．教師なしでは，自己組織化マップ（Self-Organizing Map; SOM）が総観パターンの非線形構造を可視化・圧縮する手段として用いられ\cite{philippopoulos2014performance,jiang2013classification}，国内では高須賀ほか\cite{takasuka2024}が$10\times 10$サイズのBatch-SOMにより日本周辺の気圧配置をクラスタリングし，1kmメッシュ天気との結び付けを示した．
+総観規模の気圧配置パターンを分類する技術は，気象予報や気候システムの理解，さらには防災・減災といった多様な分野で基盤となるものである．従来の専門家による主観的な分類は，その知見を直接反映できる利点があるものの，多大な労力や再現性，拡張性に課題があった．そのため，客観的かつ自動的な分類手法が広く研究されてきた．
 
-従来の多くのSOMやクラスタリングはユークリッド距離（Euclidean）を前提としており，勾配・形状・位置などの「構造」を評価しにくいという制約がある．S-SOM\cite{doan2021s}は最良一致ユニット（Best Matching Unit; BMU）探索に構造類似度指標（Structural Similarity Index Measure; SSIM）を導入してトポロジ保存性を改善した．また，Sato and Kusaka\cite{SATOTakuto20212021-047}は，勾配ベースのS1とSSIMが，Euclideanや単純相関よりも人間の主観的「似ている」をよく再現することを統計的に示した．さらにWinderlichら\cite{winderlich2024classification}は，改良SSIMとmedoid表現により，クラス分離性と代表性を両立する枠組みを提案している．
+教師あり学習の分野では，木村ら\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}がサポートベクターマシン（SVM）を用いて「冬型」や「南高北低型」などを自動検出し，実用的な検索システムを構築した．しかし，このアプローチにはラベル付けのコストや，主観のばらつき（ノイズ）による学習データの品質限界といった課題が指摘されている．
 
-本研究では，Batch-SOMにおいて，既存手法（単一手法）S1，SSIM5，Euclideanと，提案手法（単一手法）KAPPA，GSSIM，および提案手法（複合手法）S1,KA，GS,KA，S1,GS,KAの計8手法を同一条件で厳密比較する．SOMの代表としてcentroidではなくmedoid（true medoid）を出力して解釈性を高め，学習（1991–1997）と独立検証（1998–2000）の分離により汎化性能を評価する．評価は基本ラベル（15種）のMacro Recallと，ノード多数決（基本ラベル）とmedoid（基本ラベル）の一致率で行う．
+一方，教師なし学習では，自己組織化マップ（SOM）が総観パターンの持つ複雑な非線形構造を可視化・圧縮する有効な手段として用いられてきた\cite{philippopoulos2014performance,jiang2013classification}．国内の研究では，高須賀ら\cite{takasuka2024}がBatch-SOMを用いて日本周辺の気圧配置をクラスタリングし，1kmメッシュの気象データと関連付ける研究成果を示している．
+
+多くの従来研究ではユークリッド距離を基本としているが，これは勾配・形状・位置といった「構造」の評価に限界がある．これを改善するため，S-SOM\cite{doan2021s}では構造類似度指標（SSIM）をBMU探索に導入し，トポロジの保存性を向上させた．Sato and Kusaka\cite{SATOTakuto20212021-047}は，勾配ベースのS1スコアとSSIMが人間の主観的な「類似性」の判断をよく再現することを統計的に実証した．さらに，Winderlichら\cite{winderlich2024classification}は改良SSIMとmedoid表現を組み合わせ，クラス分離性と代表性を両立させる手法を提案している．
+
+本研究では，Batch-SOMフレームワーク上で8つの距離指標を厳密に比較する．既存手法としてS1，SSIM5，Euclidean，新たに提案する単一手法としてKAPPA，GSSIM，そして複数の指標を統合した複合手法S1,KA，GS,KA，S1,GS,KAを同一条件で評価する．従来のcentroid表現に代わり，medoidおよびtrue medoidを用いることで解釈性を向上させ，学習期（1991–1997）と独立検証期（1998–2000）を明確に分離して汎化性能を検証する．
 
 \section{提案枠組み}
 \subsection{従来手法：バッチ版SOM}
@@ -172,7 +176,26 @@ d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
 $\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価．
 
 \subsubsection*{提案手法（複合手法）}
-複合手法は，複数の距離指標を行方向（入力$x$固定，候補$w$方向）min-max正規化を介したRoot Mean Square（RMS）統合により組み合わせる．これにより各指標のスケール差を吸収し，複数の視点から類似性を評価できる．
+複合手法では，異なる物理的意味を持つ距離指標を統合する新しい手法を提案する．本研究の新規性は，複数の距離関数をRoot Mean Square（RMS）で統合する点にある．
+
+\paragraph{RMS統合の理論的根拠}
+単純な算術平均や重み付き和ではなくRMSを採用した理由は以下の通りである：
+
+\begin{enumerate}
+\item \textbf{スケール不変性}：各距離指標は異なる物理量（勾配，曲率，構造類似度）を評価するため，そのスケールが大きく異なる．min-max正規化により各指標を$[0,1]$区間に標準化することで，スケールの違いを吸収する．
+
+\item \textbf{ユークリッド的統合}：RMSは多次元空間における距離の自然な統合方法である．各正規化された距離を独立な次元と見なすと，RMSは多次元空間でのユークリッド距離に相当する：
+\begin{equation}
+d_{\text{RMS}} = \sqrt{\frac{1}{n}\sum_{i=1}^{n} \tilde{d}_i^2}
+\end{equation}
+
+\item \textbf{外れ値への感度}：算術平均と比較して，RMSは大きな値により敏感に反応する．これにより，いずれかの指標で大きな違いが検出された場合，統合距離もその違いを適切に反映する．
+
+\item \textbf{係数フリー}：正規化により各指標が同じオーダー（$[0,1]$区間）になるため，重み係数を調整することなく等価的に統合できる．これは実用上の大きな利点である．
+\end{enumerate}
+
+\paragraph{行方向正規化の意味}
+入力$x$を固定し，全候補$w'$に対してmin-max正規化を行うことで，各入力に対する相対的な類似性を評価する．これにより，絶対的な距離値ではなく，候補間の相対的な順位関係に基づくBMU選択が可能となる．
 
 \paragraph{S1,KA}
 S1（勾配の鋭さ）とKAPPA（曲率）を統合：
@@ -224,59 +247,60 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 \item \textbf{前処理}：PaからhPaへ変換後，領域平均を引く．
 \end{itemize}
 \subsection{ラベル体系の詳細}
-本研究で用いるラベル体系は，吉野\cite{吉野2002日本の気候}の付録B「気圧配置ごよみ」に準拠する．以下に主要な基本型（1〜6，計15基本型）と複合的な型（複合型）を示す．
+本研究で用いるラベル体系は，吉野\cite{吉野2002日本の気候}の付録B「気圧配置ごよみ」に準拠する．基本型は以下の6分類（計15サブタイプ）で構成される：
 
 \begin{description}
 \item[1. 西高東低冬型] 冬季に特徴的なシベリア高気圧とアリューシャン低気圧に起因する西高東低の場．
 
-\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19910109.png} \caption{西高東低冬型（ラベル:1）の例} \label{fig:slp_anom_19910109} \end{figure}
-
-\item[2. 気圧の谷型] 低気圧あるいは気圧の谷の通過に対応する型．サブタイプは次の通り：
+\item[2. 気圧の谷型] 低気圧あるいは気圧の谷の通過に対応する型．
   \begin{description}
-    \item[A.] 低気圧が北海道またはサハリン付近を東に進む．
-    \item[B.] 低気圧が日本海から北東に進む．
-    \item[C.] 低気圧が台湾から日本の太平洋岸を東〜東北東に進む．
-    \item[D.] 二つ玉低気圧，または日本海と太平洋に低圧部．
+    \item[A.] 低気圧が北海道またはサハリン付近を東に進む
+    \item[B.] 低気圧が日本海から北東に進む
+    \item[C.] 低気圧が台湾から日本の太平洋岸を東〜東北東に進む
+    \item[D.] 二つ玉低気圧，または日本海と太平洋に低圧部
   \end{description}
 
-\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19941001.png} \caption{気圧の谷型（ラベル:2A）の例} \label{fig:slp_anom_19941001} \end{figure}
-
-\item[3. 移動性高気圧型] 移動性高気圧に覆われる型．サブタイプは次の通り：
+\item[3. 移動性高気圧型] 移動性高気圧に覆われる型．
   \begin{description}
-    \item[A.] 日本の北方または北部を東に進む．
-    \item[B.] 日本列島上（主として本州上）を東に進む．
-    \item[C.] 帯状高気圧．
-    \item[D.] 日本の太平洋岸または南方を東に進む．
+    \item[A.] 日本の北方または北部を東に進む
+    \item[B.] 日本列島上（主として本州上）を東に進む
+    \item[C.] 帯状高気圧
+    \item[D.] 日本の太平洋岸または南方を東に進む
   \end{description}
 
-\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19920406.png} \caption{移動性高気圧型（ラベル:3A）の例} \label{fig:slp_anom_19920406} \end{figure}
-
-\item[4. 前線型] 停滞性の前線が卓越する型．サブタイプは次の通り：
+\item[4. 前線型] 停滞性の前線が卓越する型．
   \begin{description}
-    \item[A.] 日本列島上をほぼ東西方向に走る主として停滞性の前線．
-    \item[B.] 太平洋岸または日本南方をほぼ東西方向に走る主として停滞性の前線．
+    \item[A.] 日本列島上をほぼ東西方向に走る主として停滞性の前線
+    \item[B.] 太平洋岸または日本南方をほぼ東西方向に走る主として停滞性の前線
   \end{description}
-
-\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19930707.png} \caption{前線型（ラベル:4A）の例} \label{fig:slp_anom_19930707} \end{figure}
 
 \item[5. 南高北低夏型] 原則として北太平洋高気圧が日本列島を支配する夏型．
 
-\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19990728.png} \caption{南高北低夏型（ラベル:5）の例} \label{fig:slp_anom_19990728} \end{figure}
-
-\item[6. 台風型] 台風の位置に応じて次のサブタイプに区分：
+\item[6. 台風型] 台風の位置に応じて次のサブタイプに区分．
   \begin{description}
-    \item[A.] 台風が南九州より南方の海上にある場合．
-    \item[B.] 台風が本州およびその接岸地帯にある場合．
-    \item[C.] 台風が北日本にある場合．
+    \item[A.] 台風が南九州より南方の海上にある場合
+    \item[B.] 台風が本州およびその接岸地帯にある場合
+    \item[C.] 台風が北日本にある場合
   \end{description}
-
-\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19910819.png} \caption{台風型（ラベル:6A）の例} \label{fig:slp_anom_19910819} \end{figure}
-  
-\item[移行型] 例えば「3A - 2D」のように，異なる基本型間の移行過程を示す型．
-\item[複合型] 例えば「2A + 2C」のように，複数の型が同時に現れる複合的な場．
 \end{description}
 
-実験では，1〜6のサブタイプまでの15個の型を「基本型」とし，評価指標の「基本ラベル」に用いる．一方で複合的な型は評価に含めない設定とした（詳細の定義は吉野\cite{吉野2002日本の気候}を参照）．
+\begin{figure*}[t!]
+\centering
+\begin{tabular}{ccc}
+\includegraphics[width=0.30\textwidth]{fig/slp_anom_19910109.png} &
+\includegraphics[width=0.30\textwidth]{fig/slp_anom_19941001.png} &
+\includegraphics[width=0.30\textwidth]{fig/slp_anom_19920406.png} \\
+(a) 西高東低冬型（ラベル:1） & (b) 気圧の谷型（ラベル:2A） & (c) 移動性高気圧型（ラベル:3A） \\
+\includegraphics[width=0.30\textwidth]{fig/slp_anom_19930707.png} &
+\includegraphics[width=0.30\textwidth]{fig/slp_anom_19990728.png} &
+\includegraphics[width=0.30\textwidth]{fig/slp_anom_19910819.png} \\
+(d) 前線型（ラベル:4A） & (e) 南高北低夏型（ラベル:5） & (f) 台風型（ラベル:6A） \\
+\end{tabular}
+\caption{基本型の代表的な海面更正気圧偏差パターン（単位：hPa）．各パネルは日本周辺域（15–55°N, 115–155°E）における領域平均からの偏差を示す．}
+\label{fig:basic_patterns}
+\end{figure*}
+
+この他に，移行型（例：「3A - 2D」）と複合型（例：「2A + 2C」）が定義されているが，本研究では基本型15種のみを評価対象とした．詳細な定義は吉野\cite{吉野2002日本の気候}を参照されたい．
 
 \subsection{SOM設定と学習条件}
 \begin{itemize}
