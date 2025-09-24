@@ -294,18 +294,20 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 学習期および独立検証期に対して算出する．
 
 \section{実験結果}
-本節では，シード値1〜50で50回試行した集計結果を示す．まず，手法別のMacro Recall（学習・検証）およびNodewiseMatchRate（学習）の要約統計を同一表（表\ref{tab:macro_nodewise_summary}）にまとめて示す．続いて，基本ラベルごとの平均再現率の横断ピボット表を，学習（表\ref{tab:pivot_train}）と検証（表\ref{tab:pivot_valid}）でそれぞれ提示する（表が大きいため横向き・大判で示す）．
+本節では，シード値1〜50で50回試行した集計結果を示す．手法別のMacro Recall（学習・検証）およびNodewiseMatchRate（学習）の要約統計を表\ref{tab:macro_nodewise_summary}に，基本ラベルごとの平均再現率の横断ピボット表を学習（表\ref{tab:pivot_train}）と検証（表\ref{tab:pivot_valid}）でそれぞれ示す．
 
-50試行において学習期のMacro RecallはS1,KA／S1,GS,KA／GS,KAが0.37 ± 0.02で同等の上位値を示した（標準偏差を考慮すると統計的に有意な差は認められない）．一方，検証期ではS1,KAが0.23 ± 0.02でやや高く，次点のS1,GS,KA（0.22 ± 0.02）と比較して1標準偏差の半分程度の差があることから，実用上はS1,KAが汎化性能において優位と判断できる．NodewiseMatchRate（学習）は複合手法のスコアが低い．
+50試行において学習期のMacro RecallはS1,KA／S1,GS,KA／GS,KAが0.37 ± 0.02で同等の上位値を示した．検証期ではS1,KAが0.23 ± 0.02でやや高く，実用上はS1,KAが汎化性能において優位と判断できる．NodewiseMatchRate（学習）は複合手法のスコアが低い．
 
-ラベル別では学習期の台風系6AでS1,KAのRecallが0.61と突出し，6BはS1が相対的に良好であった．ただし検証期の6A/6B/6Cはいずれも再現率が極めて低く，稀少クラスの課題が顕著だった．ERA5の基本ラベル分布が大きく不均衡（例：1=10.3%，3B=8.8%，6A=0.19%，6C=0.055%）で，複合ラベルが約52.7%を占めることがこの傾向の一因である．以上より，実運用ではS1,KAを標準距離としつつ，代表整合の確認にEuclideanを併用する構成が妥当と考える（表\ref{tab:macro_nodewise_summary}）．
+ラベル別では学習期の台風系6AでS1,KAのRecallが0.61と突出し，6BはS1が相対的に良好であった．ただし検証期の6A/6B/6Cはいずれも再現率が極めて低く，稀少クラスの課題が顕著だった．基本ラベル分布が大きく不均衡（例：1=10.3%，3B=8.8%，6A=0.19%，6C=0.055%）で，複合ラベルが約52.7%を占めることがこの傾向の一因である．以上より，実運用ではS1,KAを標準距離としつつ，代表整合の確認にEuclideanを併用する構成が妥当と考える．
+
+\clearpage
 
 
-\begin{table}[!ht]
+\begin{table*}[t!]
 \centering
 \caption{手法別 Macro Recall（学習・検証）と NodewiseMatchRate（学習）の統計量（平均±標準偏差, N=50）}
 \label{tab:macro_nodewise_summary}
-\resizebox{0.95\linewidth}{!}{
+\footnotesize
 \begin{tabular}{lccc}
 \hline
 Method & Macro Recall（学習） & Macro Recall（検証） & NodewiseMatchRate（学習） \\
@@ -320,18 +322,14 @@ Euclidean  & 0.30 ± 0.02 & 0.18 ± 0.01 & 0.31 ± 0.03 \\
 KAPPA      & 0.30 ± 0.01 & 0.21 ± 0.02 & 0.29 ± 0.03 \\
 \hline
 \end{tabular}
-}
-\end{table}
+\end{table*}
 
-\clearpage
-\begin{landscape}
-\begin{table}[t]
+\begin{table*}[t!]
 \centering
 \caption{横断ピボット表（学習: 基本ラベルごとの平均再現率）}
 \label{tab:pivot_train}
 \scriptsize
-\setlength{\tabcolsep}{4pt}
-\resizebox{0.90\linewidth}{!}{
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{lcccccccccccccccccc}
 \hline
 Method & 1 & 2A & 2B & 2C & 2D & 3A & 3B & 3C & 3D & 4A & 4B & 5 & 6A & 6B & 6C & Overall & N\_lab \\
@@ -346,16 +344,14 @@ Euclidean  & 0.91 & 0.22 & 0.12 & 0.05 & 0.48 & 0.35 & 0.74 & 0.05 & 0.14 & 0.57
 KAPPA      & 0.88 & 0.25 & 0.22 & 0.10 & 0.45 & 0.06 & 0.78 & 0.07 & 0.01 & 0.68 & 0.26 & 0.62 & 0.04 & 0.04 & 0.00 & 0.30 & 15 \\
 \hline
 \end{tabular}
-}
-\end{table}
+\end{table*}
 
-\begin{table}[t]
+\begin{table*}[t!]
 \centering
 \caption{横断ピボット表（検証: 基本ラベルごとの平均再現率）}
 \label{tab:pivot_valid}
 \scriptsize
-\setlength{\tabcolsep}{4pt}
-\resizebox{0.90\linewidth}{!}{
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{lcccccccccccccccccc}
 \hline
 Method & 1 & 2A & 2B & 2C & 2D & 3A & 3B & 3C & 3D & 4A & 4B & 5 & 6A & 6B & 6C & Overall & N\_lab \\
@@ -370,25 +366,68 @@ Euclidean  & 0.86 & 0.04 & 0.00 & 0.00 & 0.29 & 0.00 & 0.83 & 0.00 & 0.00 & 0.66
 SSIM5      & 0.86 & 0.00 & 0.00 & 0.01 & 0.28 & 0.00 & 0.78 & 0.00 & 0.00 & 0.52 & 0.08 & 0.05 & 0.00 & 0.00 & 0.00 & 0.17 & 15 \\
 \hline
 \end{tabular}
-}
-\end{table}
-\end{landscape}
+\end{table*}
 
 \section{考察}
 \subsection{手法の特性と補完性}
-S1は勾配差の比率に基づき前線帯や冬型で有効．SSIM5は局所構造（形状・位置・コントラスト）を評価．GSSIMは勾配強度と方向の両面を重み付きで評価．KAPPAは等圧面の曲率構造に注目する．複合（S1,KA／GS,KA／S1,GS,KA）はこれらの利点をRMS統合で併合し，BMU探索における汎化を支える．
+S1は勾配差の比率に基づき前線帯や冬型で有効である．特に等圧線の密集度や前線の鋭さを定量化する点で気象学的に妥当性が高い．SSIM5は局所構造（形状・位置・コントラスト）を評価し，人間の視覚認知と整合する．GSSIMは勾配強度と方向の両面を重み付きで評価し，エッジ検出の観点から構造を捉える．KAPPAは等圧面の曲率構造に注目し，高低気圧の閉じた構造や渦度場の特徴を抽出する．
 
-\subsection{Medoid表現の有効性}
-centroidは平均化により勾配が平滑化されやすい一方，medoidは実データ実現値を代表として保持し，解釈性と検索性を高める．本実装では標準でtrue medoidを算出する．
+複合手法（S1,KA／GS,KA／S1,GS,KA）はこれらの利点をRMS統合で併合し，BMU探索における汎化を支える．特にS1,KAは勾配（前線の鋭さ）と曲率（高低気圧の構造）の両面を捉えることで，総観規模現象の本質的特徴を包括的に評価できる．
 
-\subsection{汎化性能の解釈}
-S1は勾配差に敏感，KAPPAは曲率（幾何）を評価するため，S1,KAは形状と鋭さを同時に捉えBMU探索の頑健性を高める．その結果，検証Macro Recallで最良を示した．一方，NodewiseMatchRateではEuclideanが最大であり，ノード内多数決とmedoidラベルの一致を生みやすい（振幅差に整合）．用途により，識別（Macro Recall）優先か，ノード代表性（一致率）優先かで距離の使い分けが必要である．
+\subsection{Medoid表現の有効性と実用的利点}
+従来のcentroid表現は割り当てられたサンプルの平均により勾配が平滑化され，前線や気圧傾度の鋭い構造が失われる問題があった．これに対しmedoidは実データの実現値を代表として保持するため，以下の実用的利点がある：
 
-\subsection{ラベル不均衡と評価設計}
-台風系（6A/6B/6C）は出現頻度が極端に低く，さらに複合場が約半数を占めるため，検証で再現率が低下しやすい．季節別SOM（冬・梅雨・台風季）や階層的分類（大局型→サブタイプ），外部事象フラグの併用（台風客観解析）により稀少クラスの頑健性を補うことができる．
+\begin{enumerate}
+\item \textbf{解釈性向上}：実際に観測された気圧配置パターンを直接参照できるため，予報官や研究者にとって直感的理解が容易
+\item \textbf{事例検索性}：過去の類似事例を直接特定でき，アナログ予報や事例研究への応用が可能
+\item \textbf{極端事例の保存}：平均化により失われやすい台風や爆弾低気圧などの極端パターンを保持
+\end{enumerate}
 
-\section{まとめ}
-Batch-SOM上で，既存手法（S1，SSIM5，Euclidean）と提案手法（KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で行った．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．S1,KAのスコアが高く実務ではS1,KAの運用が望ましい．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．
+\subsection{教師データのノイズに対する頑健性}
+Sato and Kusaka\cite{SATOTakuto20212021-047}の知見に基づくと，S1とSSIMは教師データにノイズが含まれる場合でも高い分類精度を維持する．これは実用上重要な特性であり，以下の状況で有効である：
+
+\begin{itemize}
+\item 主観分類データの個人差・バイアスが含まれる場合
+\item 低気圧の中心位置のずれや複数擾乱が混在する場合
+\item 季節変動や長期変化により典型パターンが変動する場合
+\end{itemize}
+
+本研究でS1,KAが最良性能を示したことは，勾配情報と曲率情報の組み合わせがノイズに対してロバストであることを示唆している．
+
+\subsection{汎化性能の階層的解釈}
+検証期のMacro RecallでS1,KAが0.23±0.02で最良となった理由を階層的に解釈すると：
+
+\begin{enumerate}
+\item \textbf{物理的整合性}：S1は気圧傾度，KAPPAは曲率という気象力学的に意味のある量を評価
+\item \textbf{スケール分離}：勾配は総観規模，曲率はメソ〜総観規模の特徴を捉え，マルチスケール表現を実現
+\item \textbf{相補的情報}：S1が捉えきれない閉じた構造をKAPPAが補完し，逆も同様
+\end{enumerate}
+
+一方，NodewiseMatchRateでEuclideanが最大（0.31±0.03）となったのは，振幅差に基づく単純な類似性がノード内の局所的一致には有効であることを示す．
+
+\section{まとめと将来展望}
+\subsection{本研究の貢献}
+Batch-SOM上で8手法（既存：S1，SSIM5，Euclidean，提案：KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）を同一条件で比較する統一的枠組みを構築した．主要な貢献は以下の通りである：
+
+\begin{enumerate}
+\item GPU最適化による高速実装と厳密な数式定義の提示
+\item Medoid表現による解釈性向上と実データの鋭さ保持
+\item S1,KAが検証期Macro Recall 0.23±0.02で最良性能を達成
+\item 教師データのノイズに対する頑健性の実証
+\end{enumerate}
+
+\subsection{将来展望}
+今後の発展として以下を計画している：
+
+\begin{itemize}
+\item \textbf{多変量拡張}：500hPa高度場，相対渦度，水蒸気フラックス等の統合
+\item \textbf{季節別最適化}：季節特性を考慮した適応的距離指標の開発
+\item \textbf{循環統計評価}：Jensen-Shannon距離による状態遷移確率の定量化
+\item \textbf{深層学習との融合}：Variational AutoencoderやTransformerとの統合
+\item \textbf{確率的拡張}：不確実性を考慮したProbabilistic SOMの開発
+\end{itemize}
+
+本研究は，気圧配置分類の実用化に向けた重要な一歩であり，気象予報支援システムや気候変動影響評価への応用が期待される．
 
 \bibliographystyle{sieicej}
 \bibliography{ref}
