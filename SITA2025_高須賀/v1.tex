@@ -93,9 +93,9 @@ This study presents a comprehensive comparison of distance metrics for synoptic 
 
 \section{提案枠組み}
 \subsection{従来手法：バッチ版SOM}
-自己組織化マップ（SOM）\cite{kohonen1990self}は教師なし学習によって高次元データを低次元（通常2次元）マップに写像する手法である．オンライン版SOMは1サンプルずつ処理するが，バッチ版SOM（Batch-SOM）\cite{kohonen1995batch}は全データまたはミニバッチ単位で処理することで計算効率と収束安定性を向上させる．
+自己組織化マップ（SOM）\cite{kohonen1990self}は教師なし学習によって高次元データを低次元（通常2次元）マップに写像する手法である．オンライン版SOMは1サンプルずつ処理するが，バッチ版SOM（Batch-SOM）は全データまたはミニバッチ単位で処理することで計算効率と収束安定性を向上させる．
 
-本研究では，Graphics Processing Unit（GPU）によるミニバッチ版バッチSOMを実装した．学習アルゴリズムは以下の通りである：
+本研究では，Graphics Processing Unit（GPU）によるミニバッチ版バッチSOMを実装した\cite{vettigliminisom}．学習アルゴリズムは以下の通りである：
 
 \begin{enumerate}
 \item \textbf{初期化}：$M = m_x \times m_y$個のノード（ニューロン）を2次元格子上に配置し，各ノードの重みベクトル$\bm{w}_j \in \mathbb{R}^D$（$j=1,...,M$）をランダムまたはデータからのサンプリングで初期化する．
@@ -201,6 +201,19 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 \end{equation}
 が最小となる実サンプル$X_{i^\star}$（$i^\star=\arg\min_{i\in I_c}\mathrm{cost}(i)$）をそのノードのtrue medoidとする．これにより実データの鋭さを保持した代表パターンが得られる．
 
+\subsection*{数式内の変数説明}
+\begin{itemize}
+\item $x,w$：入力パターンとノード重み（$H\times W$の格子場）
+\item $\Omega$：格子領域の添字集合，$|\Omega|$は格子点数
+\item $\mu_x(s),\mu_w(s)$：画素$s$近傍（$5\times 5$）での局所平均
+\item $\sigma_x^2(s),\sigma_w^2(s)$：同局所分散
+\item $\operatorname{cov}_{xw}(s)$：同局所共分散
+\item $\Delta_x^\cdot,\Delta_y^\cdot$：水平方向・鉛直方向の一次差分
+\item $g_x^\cdot,g_y^\cdot$：内部共通格子での勾配成分，$G^\cdot$：勾配強度
+\item $\bm{n}$：正規化勾配ベクトル，$\kappa(z)=\nabla\cdot\bm{n}$（中心差分）
+\item $\varepsilon$：数値安定化の微小正値（$10^{-12}$）
+\end{itemize}
+
 \section{実験設定}
 \subsection{データと前処理}
 \begin{itemize}
@@ -283,12 +296,12 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 \section{実験結果}
 本節では，シード値1〜50で50回試行した集計結果を示す．まず，手法別のMacro Recall（学習・検証）およびNodewiseMatchRate（学習）の要約統計を同一表（表\ref{tab:macro_nodewise_summary}）にまとめて示す．続いて，基本ラベルごとの平均再現率の横断ピボット表を，学習（表\ref{tab:pivot_train}）と検証（表\ref{tab:pivot_valid}）でそれぞれ提示する（表が大きいため横向き・大判で示す）．
 
-50試行において学習期のMacro RecallはS1,KA／S1,GS,KA／GS,KAが0.37 ± 0.02で最上位であった．検証期ではS1,KAが0.23 ± 0.02で最良となった．すなわち，構造（曲率）と鋭さ（勾配）を統合するS1,KAが汎化性能において優位である．一方，NodewiseMatchRate（学習）は複合手法のスコアが低い．
+50試行において学習期のMacro RecallはS1,KA／S1,GS,KA／GS,KAが0.37 ± 0.02で同等の上位値を示した（標準偏差を考慮すると統計的に有意な差は認められない）．一方，検証期ではS1,KAが0.23 ± 0.02でやや高く，次点のS1,GS,KA（0.22 ± 0.02）と比較して1標準偏差の半分程度の差があることから，実用上はS1,KAが汎化性能において優位と判断できる．NodewiseMatchRate（学習）は複合手法のスコアが低い．
 
-ラベル別では学習期の台風系6AでS1,KAのRecallが0.61と突出し，6BはS1が相対的に良好であった．ただし検証期の6A/6B/6Cはいずれも再現率が極めて低く，稀少クラスの課題が顕著だった．ERA5の基本ラベル分布が大きく不均衡（例：1=10.3%，3B=8.8%，6A=0.19%，6C=0.055%）で，複合ラベルが約52.7%を占めることがこの傾向の一因である．以上より，実運用ではS1,KAを標準距離としつつ，代表整合の確認にEuclideanを併用する構成が妥当と考える（表\ref{tab:macro_nodewise_summary}，\ref{tab:pivot_train}，\ref{tab:pivot_valid}）．
+ラベル別では学習期の台風系6AでS1,KAのRecallが0.61と突出し，6BはS1が相対的に良好であった．ただし検証期の6A/6B/6Cはいずれも再現率が極めて低く，稀少クラスの課題が顕著だった．ERA5の基本ラベル分布が大きく不均衡（例：1=10.3%，3B=8.8%，6A=0.19%，6C=0.055%）で，複合ラベルが約52.7%を占めることがこの傾向の一因である．以上より，実運用ではS1,KAを標準距離としつつ，代表整合の確認にEuclideanを併用する構成が妥当と考える（表\ref{tab:macro_nodewise_summary}）．
 
 
-\begin{table}[H]
+\begin{table}[!ht]
 \centering
 \caption{手法別 Macro Recall（学習・検証）と NodewiseMatchRate（学習）の統計量（平均±標準偏差, N=50）}
 \label{tab:macro_nodewise_summary}
@@ -376,19 +389,6 @@ S1は勾配差に敏感，KAPPAは曲率（幾何）を評価するため，S1,K
 
 \section{まとめ}
 Batch-SOM上で，既存手法（S1，SSIM5，Euclidean）と提案手法（KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で行った．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．S1,KAのスコアが高く実務ではS1,KAの運用が望ましい．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．
-
-\section*{付録 数式内の変数説明}
-\begin{itemize}
-\item $x,w$：入力パターンとノード重み（$H\times W$の格子場）
-\item $\Omega$：格子領域の添字集合，$|\Omega|$は格子点数
-\item $\mu_x(s),\mu_w(s)$：画素$s$近傍（$5\times 5$）での局所平均
-\item $\sigma_x^2(s),\sigma_w^2(s)$：同局所分散
-\item $\operatorname{cov}_{xw}(s)$：同局所共分散
-\item $\Delta_x^\cdot,\Delta_y^\cdot$：水平方向・鉛直方向の一次差分
-\item $g_x^\cdot,g_y^\cdot$：内部共通格子での勾配成分，$G^\cdot$：勾配強度
-\item $\bm{n}$：正規化勾配ベクトル，$\kappa(z)=\nabla\cdot\bm{n}$（中心差分）
-\item $\varepsilon$：数値安定化の微小正値（$10^{-12}$）
-\end{itemize}
 
 \bibliographystyle{sieicej}
 \bibliography{ref}
