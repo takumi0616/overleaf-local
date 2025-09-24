@@ -92,34 +92,48 @@ This study presents a comprehensive comparison of distance metrics for synoptic 
 本研究では，Batch-SOMにおいて，既存手法（単一手法）S1，SSIM5，Euclideanと，提案手法（単一手法）KAPPA，GSSIM，および提案手法（複合手法）S1,KA，GS,KA，S1,GS,KAの計8手法を同一条件で厳密比較する．SOMの代表としてcentroidではなくmedoid（true medoid）を出力して解釈性を高め，学習（1991–1997）と独立検証（1998–2000）の分離により汎化性能を評価する．評価は基本ラベル（15種）のMacro Recallと，ノード多数決（基本ラベル）とmedoid（基本ラベル）の一致率で行う．
 
 \section{提案枠組み}
-\subsection{Batch-SOM}
-バッチ版SOMをGraphics Processing Unit（GPU）で実装した．各イテレーションで，ミニバッチごとにBMUを探索し，近傍関数$h_{ij}$により分子・分母を蓄積して一括更新する．近傍幅$\sigma$は学習全体の進行$t$に応じて減衰（非増加）させる．入力は各時刻のSLP偏差（hPa）をベクトル化したものである．
+\subsection{従来手法：バッチ版SOM}
+自己組織化マップ（SOM）\cite{kohonen1990self}は教師なし学習によって高次元データを低次元（通常2次元）マップに写像する手法である．オンライン版SOMは1サンプルずつ処理するが，バッチ版SOM（Batch-SOM）\cite{kohonen1995batch}は全データまたはミニバッチ単位で処理することで計算効率と収束安定性を向上させる．
 
-\subsection{距離（類似度）指標の分類と定義}
-本稿では次の手法を用いる．
-\begin{itemize}
-  \item 既存手法（単一手法）：S1／SSIM5／Euclidean
-  \item 提案手法（単一手法）：KAPPA／GSSIM
-  \item 提案手法（複合手法）：\textbf{S1,KA}／\textbf{GS,KA}／\textbf{S1,GS,KA}
-\end{itemize}
+本研究では，Graphics Processing Unit（GPU）によるミニバッチ版バッチSOMを実装した．学習アルゴリズムは以下の通りである：
 
-% 追加: 各距離指標の抽象的な概念（提案枠組み）
-\paragraph*{各距離指標の抽象的な概念（提案枠組み）}
-\begin{description}
-\item[Euclidean] 値の差の総量（振幅・位置ずれを含む）に基づく素朴な距離．広域の正負異常の強さ・分布の総合差を測る．
-\item[SSIM5] $5\times 5$の局所平均・分散・共分散から，局所の明るさ・コントラスト・構造の一致度を測る．中心や帯の微妙な位置・強度差に敏感．
-\item[S1] 一次差分（勾配）の相対誤差に基づき，前線帯の鋭さ・広がり・配置の一致を測る．加法定数に不変で，鋭い勾配の位置ズレに敏感．
-\item[GSSIM] 勾配強度と方向（$\cos\theta$）の一致度を，強いエッジほど重く評価して測る．長い前線の向き・濃さの一致に重みが乗る．
-\item[KAPPA] 正規化勾配の発散（曲率）から等圧線の曲がり（凹凸・渦の閉じ具合）を比べる．振幅よりも幾何（丸さ・湾曲）を評価．
-\item[S1,KA] S1（鋭さ）とKAPPA（曲がり）を行方向min-max正規化後にRoot Mean Square（RMS）統合．形と鋭さの同時一致を重視し，BMU順位を安定化．
-\item[GS,KA] GSSIM（エッジの強さ・向き）とKAPPA（曲率）を統合．輪郭の方向性と曲がりの両方を一致させたい場合に有効．
-\item[S1,GS,KA] S1（鋭さ）・GSSIM（方向）・KAPPA（曲率）の三要素を総合する最も多面的な距離．人の視覚的類似に近い判断を狙う．
-\end{description}
+\begin{enumerate}
+\item \textbf{初期化}：$M = m_x \times m_y$個のノード（ニューロン）を2次元格子上に配置し，各ノードの重みベクトル$\bm{w}_j \in \mathbb{R}^D$（$j=1,...,M$）をランダムまたはデータからのサンプリングで初期化する．
+\item \textbf{ミニバッチ処理}：各反復$t$において，データをサイズ$B$のミニバッチに分割して処理する．
+\item \textbf{BMU探索}：各入力$\bm{x}_i$に対して，最良一致ユニット（Best Matching Unit; BMU）を距離関数$d(\cdot, \cdot)$により決定：
+\begin{equation}
+c(i) = \arg\min_{j} d(\bm{x}_i, \bm{w}_j)
+\end{equation}
+\item \textbf{近傍関数}：BMU $c(i)$と各ノード$j$間の近傍関数$h_{c(i),j}$を計算．本研究ではガウス関数を使用：
+\begin{equation}
+h_{c(i),j} = \exp\left(-\frac{\|\bm{r}_{c(i)} - \bm{r}_j\|^2}{2\sigma(t)^2}\right)
+\end{equation}
+ここで$\bm{r}_j$はノード$j$のグリッド座標，$\sigma(t)$は学習進行に応じて減衰する近傍幅である．
+\item \textbf{重み更新}：ミニバッチ内の全サンプルについて分子・分母を累積し，一括更新：
+\begin{equation}
+\bm{w}_j^{new} = \frac{\sum_{i \in \text{batch}} h_{c(i),j} \bm{x}_i}{\sum_{i \in \text{batch}} h_{c(i),j}}
+\end{equation}
+\item \textbf{近傍幅の減衰}：$\sigma(t)$は学習全体の進行に応じて単調減少させる．本研究では漸近減衰を採用：
+\begin{equation}
+\sigma(t) = \frac{\sigma_0}{1 + t/(T/2)}
+\end{equation}
+ここで$\sigma_0$は初期近傍幅，$T$は総反復回数である．
+\end{enumerate}
 
-$\varepsilon=10^{-12}$として，以下，正式名称で数式定義を与える．$x,w$はそれぞれ入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$とする．
+この枠組みでは，距離関数$d(\cdot, \cdot)$の選択がBMU決定，ひいては学習結果全体に決定的な影響を与える．以下では各距離関数を定義する．
+
+\subsection{距離指標の定義}
+入力を各時刻のSLP偏差（hPa）をベクトル化したものとする．$x,w$はそれぞれ入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$とする．$\varepsilon=10^{-12}$は数値安定化のための微小正値である．
 
 \subsubsection*{既存手法（単一手法）}
-\paragraph{S1}
+\paragraph{Euclidean（ユークリッド距離）}
+最も基本的な距離で，値の差の総量を測る：
+\begin{equation}
+d_{\mathrm{EUC}}(x,w)=\sqrt{\sum_{s\in\Omega}\bigl(x(s)-w(s)\bigr)^2+\varepsilon}
+\end{equation}
+
+\paragraph{S1（Teweles-Wobus Score）}
+一次差分（勾配）の相対誤差に基づき，前線帯の鋭さ・広がり・配置の一致を測る．加法定数に不変：
 \halfeq{%
 S1(x,w)=100\times
 \frac{\sum\limits_{(i,j)}|\Delta_x^x(i,j)-\Delta_x^w(i,j)|+\sum\limits_{(i,j)}|\Delta_y^x(i,j)-\Delta_y^w(i,j)|}
@@ -127,29 +141,18 @@ S1(x,w)=100\times
 }
 ここで$\Delta_x^x(i,j)=x(i,j+1)-x(i,j)$，$\Delta_y^x(i,j)=x(i+1,j)-x(i,j)$，$w$側も同様．
 
-\paragraph{SSIM5}
+\paragraph{SSIM5（構造類似度指標）}
+$5\times 5$の局所窓で平均・分散・共分散を計算し，明るさ・コントラスト・構造の一致度を測る：
 \halfeq{%
 d_{\mathrm{SSIM5}}(x,w)=1-\frac{1}{|\Omega|}\sum_{s\in\Omega}
 \frac{\bigl(2\,\mu_x(s)\mu_w(s)\bigr)\bigl(2\,\operatorname{cov}_{xw}(s)\bigr)}
 {\bigl(\mu_x(s)^2+\mu_w(s)^2\bigr)\bigl(\sigma_x^2(s)+\sigma_w^2(s)\bigr)+\varepsilon}%
 }
-$\mu,\sigma^2,\operatorname{cov}$は$5\times 5$移動平均，境界はreflect．
-
-\paragraph{Euclidean}
-\begin{equation}
-d_{\mathrm{EUC}}(x,w)=\sqrt{\sum_{s\in\Omega}\bigl(x(s)-w(s)\bigr)^2+\varepsilon}.
-\end{equation}
+$\mu,\sigma^2,\operatorname{cov}$は$5\times 5$移動窓内の局所統計量，境界はreflectパディング．
 
 \subsubsection*{提案手法（単一手法）}
-\paragraph{KAPPA}
-\halfeq{%
-d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
-\frac{\sum\limits_{i,j}\bigl|\kappa(x)(i,j)-\kappa(w)(i,j)\bigr|}
-{\sum\limits_{i,j}\max\!\bigl(|\kappa(x)(i,j)|,|\kappa(w)(i,j)|\bigr)+\varepsilon}%
-}
-$\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価．
-
-\paragraph{GSSIM}
+\paragraph{GSSIM（勾配構造類似度）}
+勾配強度と方向（$\cos\theta$）の一致度を，強いエッジほど重く評価：
 \halfeq{%
 d_{\mathrm{GS}}(x,w)=1-
 \frac{\sum\limits_{i,j} \max(G^x,G^w)\;
@@ -159,36 +162,44 @@ d_{\mathrm{GS}}(x,w)=1-
 }
 $g_x^\cdot,g_y^\cdot$は内部格子の一次差分，$G^\cdot=\sqrt{(g_x^\cdot)^2+(g_y^\cdot)^2+\varepsilon}$．
 
+\paragraph{KAPPA（曲率距離）}
+正規化勾配の発散（曲率）から等圧線の曲がり（凹凸・渦の閉じ具合）を比較：
+\halfeq{%
+d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
+\frac{\sum\limits_{i,j}\bigl|\kappa(x)(i,j)-\kappa(w)(i,j)\bigr|}
+{\sum\limits_{i,j}\max\!\bigl(|\kappa(x)(i,j)|,|\kappa(w)(i,j)|\bigr)+\varepsilon}%
+}
+$\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価．
+
 \subsubsection*{提案手法（複合手法）}
-複合手法は行方向（入力$x$固定，候補$w$方向）min-max正規化を介したRMS統合である．
+複合手法は，複数の距離指標を行方向（入力$x$固定，候補$w$方向）min-max正規化を介したRoot Mean Square（RMS）統合により組み合わせる．これにより各指標のスケール差を吸収し，複数の視点から類似性を評価できる．
+
 \paragraph{S1,KA}
+S1（勾配の鋭さ）とKAPPA（曲率）を統合：
 \begin{align}
-\tilde d_{\mathrm{S1}}(x,w)&=\frac{d_{\mathrm{S1}}(x,w)-\min_{w'}d_{\mathrm{S1}}(x,w')}{\max_{w'}d_{\mathrm{S1}}(x,w')-\min_{w'}d_{\mathrm{S1}}(x,w')+\varepsilon},\\
-\tilde d_{\mathrm{KA}}(x,w)&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon},\\
-d_{\mathrm{S1,KA}}(x,w)&=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}.
+\tilde d_{\mathrm{S1}}(x,w)&=\frac{d_{\mathrm{S1}}(x,w)-\min_{w'}d_{\mathrm{S1}}(x,w')}{\max_{w'}d_{\mathrm{S1}}(x,w')-\min_{w'}d_{\mathrm{S1}}(x,w')+\varepsilon}\\
+\tilde d_{\mathrm{KA}}(x,w)&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon}\\
+d_{\mathrm{S1,KA}}(x,w)&=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}
 \end{align}
 
 \paragraph{GS,KA}
+GSSIM（エッジの強さ・向き）とKAPPA（曲率）を統合：
 \begin{equation}
-\begin{aligned}
-\tilde d_{\mathrm{KA}}(x,w)
-&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon},\\
-d_{\mathrm{GS,KA}}(x,w)
-&=\sqrt{\frac{d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}.
-\end{aligned}
+d_{\mathrm{GS,KA}}(x,w)=\sqrt{\frac{d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}
 \end{equation}
 
 \paragraph{S1,GS,KA}
+S1（鋭さ）・GSSIM（方向）・KAPPA（曲率）の三要素を総合：
 \begin{equation}
-d_{\mathrm{S1,GS,KA}}(x,w)=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{3}}.
+d_{\mathrm{S1,GS,KA}}(x,w)=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{3}}
 \end{equation}
 
 \subsection{Medoid表現}
-SOMの各ノードに割り当てられたインデックス集合$I_c$に対し，ノード内総距離
+SOMの各ノードの代表パターンとして，従来はcentroid（割り当てられたサンプルの平均）が使用されるが，平均化により勾配が平滑化される問題がある．そこで本研究では，各ノードに割り当てられたインデックス集合$I_c$に対し，ノード内総距離
 \begin{equation}
 \mathrm{cost}(i)=\sum_{j\in I_c} d\bigl(X_j, X_i\bigr)
 \end{equation}
-が最小となる実サンプル$X_{i^\star}$（$i^\star=\arg\min_{i\in I_c}\mathrm{cost}(i)$）をそのノードのtrue medoidとする．$d(\cdot,\cdot)$は上記いずれかの距離である．
+が最小となる実サンプル$X_{i^\star}$（$i^\star=\arg\min_{i\in I_c}\mathrm{cost}(i)$）をそのノードのtrue medoidとする．これにより実データの鋭さを保持した代表パターンが得られる．
 
 \section{実験設定}
 \subsection{データと前処理}
@@ -205,7 +216,7 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
 \begin{description}
 \item[1. 西高東低冬型] 冬季に特徴的なシベリア高気圧とアリューシャン低気圧に起因する西高東低の場．
 
-\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19910109.png} \caption{西高東低冬型（ラベル:1）の例} \label{fig:slp_anom_19910109} \end{figure}
+\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19910109.png} \caption{西高東低冬型（ラベル:1）の例} \label{fig:slp_anom_19910109} \end{figure}
 
 \item[2. 気圧の谷型] 低気圧あるいは気圧の谷の通過に対応する型．サブタイプは次の通り：
   \begin{description}
@@ -215,7 +226,7 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
     \item[D.] 二つ玉低気圧，または日本海と太平洋に低圧部．
   \end{description}
 
-\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19941001.png} \caption{気圧の谷型（ラベル:2A）の例} \label{fig:slp_anom_19941001} \end{figure}
+\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19941001.png} \caption{気圧の谷型（ラベル:2A）の例} \label{fig:slp_anom_19941001} \end{figure}
 
 \item[3. 移動性高気圧型] 移動性高気圧に覆われる型．サブタイプは次の通り：
   \begin{description}
@@ -225,7 +236,7 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
     \item[D.] 日本の太平洋岸または南方を東に進む．
   \end{description}
 
-\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19920406.png} \caption{移動性高気圧型（ラベル:3A）の例} \label{fig:slp_anom_19920406} \end{figure}
+\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19920406.png} \caption{移動性高気圧型（ラベル:3A）の例} \label{fig:slp_anom_19920406} \end{figure}
 
 \item[4. 前線型] 停滞性の前線が卓越する型．サブタイプは次の通り：
   \begin{description}
@@ -233,11 +244,11 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
     \item[B.] 太平洋岸または日本南方をほぼ東西方向に走る主として停滞性の前線．
   \end{description}
 
-\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19930707.png} \caption{前線型（ラベル:4A）の例} \label{fig:slp_anom_19930707} \end{figure}
+\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19930707.png} \caption{前線型（ラベル:4A）の例} \label{fig:slp_anom_19930707} \end{figure}
 
 \item[5. 南高北低夏型] 原則として北太平洋高気圧が日本列島を支配する夏型．
 
-\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19990728.png} \caption{南高北低夏型（ラベル:5）の例} \label{fig:slp_anom_19990728} \end{figure}
+\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19990728.png} \caption{南高北低夏型（ラベル:5）の例} \label{fig:slp_anom_19990728} \end{figure}
 
 \item[6. 台風型] 台風の位置に応じて次のサブタイプに区分：
   \begin{description}
@@ -246,7 +257,7 @@ SOMの各ノードに割り当てられたインデックス集合$I_c$に対し
     \item[C.] 台風が北日本にある場合．
   \end{description}
 
-\begin{figure}[H] \centering \includegraphics[width=\columnwidth,keepaspectratio]{fig/slp_anom_19910819.png} \caption{台風型（ラベル:6A）の例} \label{fig:slp_anom_19910819} \end{figure}
+\begin{figure}[H] \centering \includegraphics[width=0.6\columnwidth,keepaspectratio]{fig/slp_anom_19910819.png} \caption{台風型（ラベル:6A）の例} \label{fig:slp_anom_19910819} \end{figure}
   
 \item[移行型] 例えば「3A - 2D」のように，異なる基本型間の移行過程を示す型．
 \item[複合型] 例えば「2A + 2C」のように，複数の型が同時に現れる複合的な場．
