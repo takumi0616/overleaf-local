@@ -47,7 +47,7 @@
   \thanks{ %和文の所属と住所
     〒940-2188 新潟県長岡市上富岡町1603-1 長岡技術科学大学，
     %英文の所属と住所
-    Nagaoka University of Technology, 1603-1 Kamitomioka-machi, Nagaoka, Niigata 940-2188, Japan.
+    Nagaoka University of Technology, 1603-1 Kamitomioka-machi, Nagaoka, Niigata 940-2188, Japan. E-mail: s233319@stn.nagaokaut.ac.jp.
   }\\
   %英文の第一著者名
   Takumi Takasuka
@@ -322,16 +322,17 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 
 50試行において学習期のMacro RecallはS1,KA／S1,GS,KA／GS,KAが0.37 ± 0.02で同等の上位値を示した．検証期ではS1,KAが0.23 ± 0.02でやや高く，実用上はS1,KAが汎化性能において優位と判断できる．NodewiseMatchRate（学習）は複合手法のスコアが低い．
 
-ラベル別では学習期の台風系6AでS1,KAのRecallが0.61と突出し，6BはS1が相対的に良好であった．ただし検証期の6A/6B/6Cはいずれも再現率が極めて低く，稀少クラスの課題が顕著だった．基本ラベル分布が大きく不均衡（例：1=10.3\%，3B=8.8\%，6A=0.19\%，6C=0.055\%）で，複合ラベルが約52.7\%を占めることがこの傾向の一因である．以上より，実運用ではS1,KAを標準距離としつつ，代表整合の確認にEuclideanを併用する構成が妥当と考える．
+加えて，各手法が「どのくらいのラベルを検出できているか（非ゼロ再現率の基本ラベル数）」に着目すると，学習期ではSSIM5のみが15/15ラベルを網羅し，他の7手法はいずれも14/15（主として6Cが0）にとどまった（表\ref{tab:pivot_train}）．一方で検証期は差がより明瞭で，S1が11/15と最も広いカバレッジを示し，S1,GS,KA・GS,KA・GSSIMが10/15，S1,KAが8/15，KAPPA／Euclidean／SSIM5はいずれも7/15にとどまった（表\ref{tab:pivot_valid}）．
 
-\clearpage
+検出が安定なラベルとしては，1（西高東低冬型），3B（移動性高気圧：本州上），4A（東西前線）が挙げられ，多くの手法で検証期でも高い再現率が維持される．一方で，2C（太平洋岸低気圧），3C（帯状高気圧），3D（南岸高気圧），台風系（6A/6C）は複数手法で検出ゼロになりやすく，事例数の少なさや場の多様性の高さが影響していると解釈できる．
 
+以上より，実運用ではS1,KAを標準距離とする構成が妥当と考える．
 
-\begin{table*}[t!]
+\begin{table}[H]
 \centering
 \caption{手法別 Macro Recall（学習・検証）と NodewiseMatchRate（学習）の統計量（平均±標準偏差, N=50）}
 \label{tab:macro_nodewise_summary}
-\footnotesize
+\resizebox{0.95\linewidth}{!}{
 \begin{tabular}{lccc}
 \hline
 Method & Macro Recall（学習） & Macro Recall（検証） & NodewiseMatchRate（学習） \\
@@ -346,7 +347,8 @@ Euclidean  & 0.30 ± 0.02 & 0.18 ± 0.01 & 0.31 ± 0.03 \\
 KAPPA      & 0.30 ± 0.01 & 0.21 ± 0.02 & 0.29 ± 0.03 \\
 \hline
 \end{tabular}
-\end{table*}
+}
+\end{table}
 
 \begin{table*}[t!]
 \centering
