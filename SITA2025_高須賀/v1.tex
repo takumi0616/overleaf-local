@@ -34,6 +34,7 @@
     \makebox[\linewidth][l]{\resizebox{#1}{!}{\ensuremath{#2}}}%
   \end{equation}
 }
+\renewcommand{\baselinestretch}{.9}
 
 \title{
   %和文の論文題目
@@ -77,7 +78,7 @@
   Gendo Kumoi
 }
 \abstract{
-This study presents a comprehensive comparison of distance metrics for synoptic pattern classification using Self-Organizing Maps (SOM). We implemented Batch-SOM with eight distance metrics: Euclidean (EUC), Structural Similarity Index with $5\times 5$ moving window (SSIM5), Teweles-Wobus score (S1), and their fusion (S1+SSIM5). Using sea level pressure data from the broader Japan region (1991–1999 for training, 2000 for validation), we evaluated classification performance through Macro-averaged Recall and medoid representation quality. Results show that S1+SSIM5 demonstrated superior generalization. We also introduced medoid and true medoid representations to address the blurring effect of centroid averaging, enhancing interpretability of SOM output maps for operational use. This framework bridges recent advances in structural similarity metrics and contributes to future developments in pressure pattern classification.}
+This study compares distance metrics for synoptic pattern classification using Self-Organizing Maps (SOM). We implemented Batch-SOM with eight metrics: Euclidean (EUC), Structural Similarity Index (5x5 window, SSIM5), Teweles-Wobus score (S1), and their fusion (S1+SSIM5). Using sea level pressure data from Japan (1991–2000), we evaluated performance via Macro-averaged Recall and medoid representation quality. Results showed S1+SSIM5 had superior generalization. We also introduced medoid and true medoid representations to reduce blurring from centroid averaging, enhancing the interpretability of SOM output maps for operational use, bridging advances in structural similarity metrics.}
 \keywords{
   Self-Organizing Map (SOM), synoptic pattern classification, structural similarity metrics
 }
@@ -85,18 +86,18 @@ This study presents a comprehensive comparison of distance metrics for synoptic 
 \maketitle
 
 \section{はじめに}
-総観規模の気圧配置パターンを分類する技術は，気象予報や気候システムの理解，さらには防災・減災といった多様な分野で基盤となるものである．従来の専門家による主観的な分類は，その知見を直接反映できる利点があるものの，多大な労力や再現性，拡張性に課題があった．そのため，客観的かつ自動的な分類手法が広く研究されてきた．
+総観規模の気圧配置パターンを分類する技術は，気象予報や気候システムの理解，さらには防災・減災といった多様な分野で基盤となるものである．従来の専門家による主観的な分類は，その知見を直接反映できる利点があるものの，多大な労力や再現性，拡張性に課題があった．そのため，客観的かつ自動的な分類手法が広く研究されている．
 
-教師あり学習の分野では，木村ら\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}がサポートベクターマシン（SVM）を用いて「冬型」や「南高北低型」などを自動検出し，実用的な検索システムを構築した．しかし，このアプローチにはラベル付けのコストや，主観のばらつき（ノイズ）による学習データの品質限界といった課題が指摘されている．
+教師あり学習の分野では，木村ら\cite{木村広希2009サポートベクターマシンを用いた気圧配置検出手法の提案}がサポートベクターマシン（SVM）を用いて「冬型」や「南高北低型」などを自動検出し，実用的な検索システムを構築した．しかし，このアプローチにはラベル付けのコストや，主観のばらつき（ノイズ）による学習データの品質の限界といった課題が指摘されている．
 
-一方，教師なし学習では，自己組織化マップ（SOM）が総観パターンの持つ複雑な非線形構造を可視化・圧縮する有効な手段として用いられてきた\cite{philippopoulos2014performance,jiang2013classification}．国内の研究では，高須賀ら\cite{takasuka2024}がBatch-SOMを用いて日本周辺の気圧配置をクラスタリングし，1kmメッシュの気象データと関連付ける研究成果を示している．
+一方，教師なし学習では，自己組織化マップ（SOM）が総観パターンの持つ複雑な非線形構造を可視化・圧縮する有効な手段として用いられてきた\cite{philippopoulos2014performance,jiang2013classification}．国内の研究では，筆者ら\cite{takasuka2024}がBatch-SOMを用いて日本周辺の気圧配置をクラスタリングし，1kmメッシュの気象データと関連付ける研究成果を示している．
 
-多くの従来研究ではユークリッド距離を基本としているが，これは勾配・形状・位置といった「構造」の評価に限界がある．これを改善するため，S-SOM\cite{doan2021s}では構造類似度指標（SSIM）をBMU探索に導入し，トポロジの保存性を向上させた．Sato and Kusaka\cite{SATOTakuto20212021-047}は，勾配ベースのS1スコアとSSIMが人間の主観的な「類似性」の判断をよく再現することを統計的に実証した．さらに，Winderlichら\cite{winderlich2024classification}は改良SSIMとmedoid表現を組み合わせ，クラス分離性と代表性を両立させる手法を提案している．
+多くの従来研究ではユークリッド距離を基本としているが，勾配・形状・位置といった「構造」の評価には限界がある．これを改善するため，S-SOM\cite{doan2021s}では構造類似度指標（SSIM）をBMU探索に導入し，トポロジーの保存性を向上させた．佐藤らは，勾配ベースのS1スコアとSSIMが人間の主観的な「類似性」の判断をよく再現することを統計的に実証した\cite{SATOTakuto20212021-047}．さらに，Winderlichらは改良SSIMとmedoid表現を組み合わせ，クラス分離性と代表性を両立させる手法を提案している\cite{winderlich2024classification}．
 
-本研究では，Batch-SOMフレームワーク上で8つの距離指標を厳密に比較する．既存手法としてS1，SSIM5，Euclidean，新たに提案する単一手法としてKAPPA，GSSIM，そして複数の指標を統合した複合手法S1,KA，GS,KA，S1,GS,KAを同一条件で評価する．従来のcentroid表現に代わり，medoidおよびtrue medoidを用いることで解釈性を向上させ，学習期（1991–1997）と独立検証期（1998–2000）を明確に分離して汎化性能を検証する．
+本研究では，Batch-SOMフレームワーク上で8つの距離指標を厳密に比較する．既存手法としてS1，SSIM5，Euclidean，新たに提案する単一手法としてKAPPA，GSSIM，そして複数の指標を統合した複合手法を同一条件で評価する．従来のcentroid表現に代わり，medoidおよびtrue medoidを用いることで解釈性を向上させ，学習期（1991–1997）と独立検証期（1998–2000）を明確に分離して汎化性能を検証する．
 
-\section{提案枠組み}
-\subsection{従来手法：バッチ版SOM}
+\section{従来手法}
+\subsection{バッチ版SOM}
 自己組織化マップ（SOM）\cite{kohonen1990self}は教師なし学習によって高次元データを低次元（通常2次元）マップに写像する手法である．オンライン版SOMは1サンプルずつ処理するが，バッチ版SOM（Batch-SOM）は全データまたはミニバッチ単位で処理することで計算効率と収束安定性を向上させる．
 
 本研究では，Graphics Processing Unit（GPU）によるミニバッチ版バッチSOMを実装した\cite{vettigliminisom}．学習アルゴリズムは以下の通りである：
@@ -108,7 +109,7 @@ This study presents a comprehensive comparison of distance metrics for synoptic 
 \begin{equation}
 c(i) = \arg\min_{j} d(\bm{x}_i, \bm{w}_j)
 \end{equation}
-\item \textbf{近傍関数}：BMU $c(i)$と各ノード$j$間の近傍関数$h_{c(i),j}$を計算．本研究ではガウス関数を使用：
+\item \textbf{近傍関数}：BMU $c(i)$と各ノード$j$間の近傍関数$h_{c(i),j}$を計算する．本研究ではガウス関数を使用：
 \begin{equation}
 h_{c(i),j} = \exp\left(-\frac{\|\bm{r}_{c(i)} - \bm{r}_j\|^2}{2\sigma(t)^2}\right)
 \end{equation}
@@ -126,10 +127,9 @@ h_{c(i),j} = \exp\left(-\frac{\|\bm{r}_{c(i)} - \bm{r}_j\|^2}{2\sigma(t)^2}\righ
 
 この枠組みでは，距離関数$d(\cdot, \cdot)$の選択がBMU決定，ひいては学習結果全体に決定的な影響を与える．以下では各距離関数を定義する．
 
-\subsection{距離指標の定義}
-入力を各時刻のSLP偏差（hPa）をベクトル化したものとする．$x,w$はそれぞれ入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$とする．$\varepsilon=10^{-12}$は数値安定化のための微小正値である．
+\subsection{距離関数}
+バッチSOMおよび気象の気圧配置に関しては，既存手法として以下の距離関数が用いられている．
 
-\subsubsection*{既存手法（単一手法）}
 \paragraph{Euclidean（ユークリッド距離）}
 最も基本的な距離で，値の差の総量を測る：
 \begin{equation}
@@ -139,11 +139,11 @@ d_{\mathrm{EUC}}(x,w)=\sqrt{\sum_{s\in\Omega}\bigl(x(s)-w(s)\bigr)^2+\varepsilon
 \paragraph{S1（Teweles-Wobus Score）}
 一次差分（勾配）の相対誤差に基づき，前線帯の鋭さ・広がり・配置の一致を測る．加法定数に不変：
 \halfeq{%
-S1(x,w)=100\times
+d_{\mathrm{S1}}(x,w)=100\times
 \frac{\sum\limits_{(i,j)}|\Delta_x^x(i,j)-\Delta_x^w(i,j)|+\sum\limits_{(i,j)}|\Delta_y^x(i,j)-\Delta_y^w(i,j)|}
 {\sum\limits_{(i,j)}\max(|\Delta_x^x(i,j)|,|\Delta_x^w(i,j)|)+\sum\limits_{(i,j)}\max(|\Delta_y^x(i,j)|,|\Delta_y^w(i,j)|)+\varepsilon}%
 }
-ここで$\Delta_x^x(i,j)=x(i,j+1)-x(i,j)$，$\Delta_y^x(i,j)=x(i+1,j)-x(i,j)$，$w$側も同様．
+ここで$\Delta_x^x(i,j)=x(i,j+1)-x(i,j)$，$\Delta_y^x(i,j)=x(i+1,j)-x(i,j)$，$w$側も同様である．
 
 \paragraph{SSIM5（構造類似度指標）}
 $5\times 5$の局所窓で平均・分散・共分散を計算し，明るさ・コントラスト・構造の一致度を測る：
@@ -152,9 +152,14 @@ d_{\mathrm{SSIM5}}(x,w)=1-\frac{1}{|\Omega|}\sum_{s\in\Omega}
 \frac{\bigl(2\,\mu_x(s)\mu_w(s)\bigr)\bigl(2\,\operatorname{cov}_{xw}(s)\bigr)}
 {\bigl(\mu_x(s)^2+\mu_w(s)^2\bigr)\bigl(\sigma_x^2(s)+\sigma_w^2(s)\bigr)+\varepsilon}%
 }
-$\mu,\sigma^2,\operatorname{cov}$は$5\times 5$移動窓内の局所統計量，境界はreflectパディング．
+$\mu,\sigma^2,\operatorname{cov}$は$5\times 5$移動窓内の局所統計量，境界はreflectパディングである．
 
-\subsubsection*{提案手法（単一手法）}
+\section{提案手法}
+本研究では，各データ点は入力を各時刻のSLP偏差（hPa）をベクトル化したものとする．$x,w$はそれぞれ入力パターンとノード重みの2次元場（$H\times W$），格子領域を$\Omega$とする．$\varepsilon=10^{-12}$は数値安定化のための微小正値である．
+
+このデータ点に対して，新たに以下の距離関数を提案する．
+
+\subsection{距離関数}
 \paragraph{GSSIM（勾配構造類似度）}
 勾配強度と方向（$\cos\theta$）の一致度を，強いエッジほど重く評価：
 \halfeq{%
@@ -164,7 +169,7 @@ d_{\mathrm{GS}}(x,w)=1-
 \tfrac{1}{2}\!\left(1+\frac{g_x^x g_x^w+g_y^x g_y^w}{G^x G^w+\varepsilon}\right)
 }{\sum\limits_{i,j}\max(G^x,G^w)+\varepsilon}%
 }
-$g_x^\cdot,g_y^\cdot$は内部格子の一次差分，$G^\cdot=\sqrt{(g_x^\cdot)^2+(g_y^\cdot)^2+\varepsilon}$．
+$g_x^\cdot,g_y^\cdot$は内部格子の一次差分，$G^\cdot=\sqrt{(g_x^\cdot)^2+(g_y^\cdot)^2+\varepsilon}$である．
 
 \paragraph{KAPPA（曲率距離）}
 正規化勾配の発散（曲率）から等圧線の曲がり（凹凸・渦の閉じ具合）を比較：
@@ -173,10 +178,10 @@ d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
 \frac{\sum\limits_{i,j}\bigl|\kappa(x)(i,j)-\kappa(w)(i,j)\bigr|}
 {\sum\limits_{i,j}\max\!\bigl(|\kappa(x)(i,j)|,|\kappa(w)(i,j)|\bigr)+\varepsilon}%
 }
-$\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価．
+$\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価される．
 
-\subsubsection*{提案手法（複合手法）}
-複合手法では，異なる物理的意味を持つ距離指標を統合する新しい手法を提案する．本研究の新規性は，複数の距離関数をRoot Mean Square（RMS）で統合する点にある．
+\subsection{複合手法}
+複合手法として，異なる物理的意味を持つ距離指標を統合する新しい手法を提案する．本研究の新規性は，複数の距離関数をRoot Mean Square（RMS）で統合する点にある．
 
 \paragraph{RMS統合の理論的根拠}
 単純な算術平均や重み付き和ではなくRMSを採用した理由は以下の通りである：
@@ -195,13 +200,16 @@ d_{\text{RMS}} = \sqrt{\frac{1}{n}\sum_{i=1}^{n} \tilde{d}_i^2}
 \end{enumerate}
 
 \paragraph{行方向正規化の意味}
-入力$x$を固定し，全候補$w'$に対してmin-max正規化を行うことで，各入力に対する相対的な類似性を評価する．これにより，絶対的な距離値ではなく，候補間の相対的な順位関係に基づくBMU選択が可能となる．
+入力$x$を固定し，全候補$w'$に対してmin-max正規化することで，各入力に対する相対的な類似性を評価する．これにより，絶対的な距離値ではなく，候補間の相対的な順位関係に基づくBMU選択が可能となる．
 
 \paragraph{S1,KA}
 S1（勾配の鋭さ）とKAPPA（曲率）を統合：
+
+\halfeq{%
+\tilde d_{\mathrm{S1}}(x,w)=\frac{d_{\mathrm{S1}}(x,w)-\min_{w'}d_{\mathrm{S1}}(x,w')}{\max_{w'}d_{\mathrm{S1}}(x,w')-\min_{w'}d_{\mathrm{S1}}(x,w')+\varepsilon}}
+\halfeq{%
+\tilde d_{\mathrm{KA}}(x,w)=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon}}
 \begin{align}
-\tilde d_{\mathrm{S1}}(x,w)&=\frac{d_{\mathrm{S1}}(x,w)-\min_{w'}d_{\mathrm{S1}}(x,w')}{\max_{w'}d_{\mathrm{S1}}(x,w')-\min_{w'}d_{\mathrm{S1}}(x,w')+\varepsilon}\\
-\tilde d_{\mathrm{KA}}(x,w)&=\frac{d_{\mathrm{KA}}(x,w)-\min_{w'}d_{\mathrm{KA}}(x,w')}{\max_{w'}d_{\mathrm{KA}}(x,w')-\min_{w'}d_{\mathrm{KA}}(x,w')+\varepsilon}\\
 d_{\mathrm{S1,KA}}(x,w)&=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{2}}
 \end{align}
 
@@ -213,9 +221,9 @@ d_{\mathrm{GS,KA}}(x,w)=\sqrt{\frac{d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}
 
 \paragraph{S1,GS,KA}
 S1（鋭さ）・GSSIM（方向）・KAPPA（曲率）の三要素を総合：
-\begin{equation}
+\halfeq{%
 d_{\mathrm{S1,GS,KA}}(x,w)=\sqrt{\frac{\tilde d_{\mathrm{S1}}(x,w)^2+d_{\mathrm{GS}}(x,w)^2+\tilde d_{\mathrm{KA}}(x,w)^2}{3}}
-\end{equation}
+}
 
 \subsection{Medoid表現}
 SOMの各ノードの代表パターンとして，従来はcentroid（割り当てられたサンプルの平均）が使用されるが，平均化により勾配が平滑化される問題がある．そこで本研究では，各ノードに割り当てられたインデックス集合$I_c$に対し，ノード内総距離
@@ -243,9 +251,10 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 \item \textbf{物理量}：海面更正気圧（SLP）
 \item \textbf{領域}：日本周辺域（15–55°N, 115–155°E）
 \item \textbf{期間}：学習1991–1997年，検証1998–2000年（日次09 Japan Standard Time; JST）
-\item \textbf{ラベル}：吉野\cite{吉野2002日本の気候}の付録B「気圧配置ごよみ」準拠
+\item \textbf{ラベル}：吉野\cite{吉野2002日本の気候}の「気圧配置ごよみ」準拠
 \item \textbf{前処理}：PaからhPaへ変換後，領域平均を引く．
 \end{itemize}
+
 \subsection{ラベル体系の詳細}
 本研究で用いるラベル体系は，吉野\cite{吉野2002日本の気候}の付録B「気圧配置ごよみ」に準拠する．基本型は以下の6分類（計15サブタイプ）で構成される：
 
@@ -276,7 +285,7 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 
 \item[5. 南高北低夏型] 原則として北太平洋高気圧が日本列島を支配する夏型．
 
-\item[6. 台風型] 台風の位置に応じて次のサブタイプに区分．
+\item[6. 台風型] 台風の位置に応じて次のサブタイプに区分する．
   \begin{description}
     \item[A.] 台風が南九州より南方の海上にある場合
     \item[B.] 台風が本州およびその接岸地帯にある場合
@@ -312,7 +321,7 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 
 \subsection{評価指標}
 \begin{itemize}
-\item Macro Recall（基本ラベル）：各基本ラベルの再現率の平均．混同行列は「基本ラベル vs クラスタ列」で集計．
+\item Macro Recall（基本ラベル）：各基本ラベルの再現率の平均．混同行列は「基本ラベル vs クラスタ列」で集計する．
 \item NodewiseMatchRate（基本）：各ノードの多数決（基本ラベル）とtrue medoidの基本ラベルの一致率．
 \end{itemize}
 学習期および独立検証期に対して算出する．
@@ -328,11 +337,10 @@ SOMの各ノードの代表パターンとして，従来はcentroid（割り当
 
 以上より，実運用ではS1,KAを標準距離とする構成が妥当と考える．
 
-\begin{table}[H]
+\begin{table*}[t]
 \centering
 \caption{手法別 Macro Recall（学習・検証）と NodewiseMatchRate（学習）の統計量（平均±標準偏差, N=50）}
 \label{tab:macro_nodewise_summary}
-\resizebox{0.95\linewidth}{!}{
 \begin{tabular}{lccc}
 \hline
 Method & Macro Recall（学習） & Macro Recall（検証） & NodewiseMatchRate（学習） \\
@@ -347,8 +355,7 @@ Euclidean  & 0.30 ± 0.02 & 0.18 ± 0.01 & 0.31 ± 0.03 \\
 KAPPA      & 0.30 ± 0.01 & 0.21 ± 0.02 & 0.29 ± 0.03 \\
 \hline
 \end{tabular}
-}
-\end{table}
+\end{table*}
 
 \begin{table*}[t!]
 \centering
@@ -360,14 +367,14 @@ KAPPA      & 0.30 ± 0.01 & 0.21 ± 0.02 & 0.29 ± 0.03 \\
 \hline
 Method & 1 & 2A & 2B & 2C & 2D & 3A & 3B & 3C & 3D & 4A & 4B & 5 & 6A & 6B & 6C & Overall & N\_lab \\
 \hline
-S1,KA      & 0.92 & 0.26 & 0.24 & 0.14 & 0.60 & 0.21 & 0.79 & 0.05 & 0.01 & 0.68 & 0.35 & 0.59 & 0.61 & 0.10 & 0.00 & 0.37 & 15 \\
-S1,GS,KA   & 0.91 & 0.35 & 0.27 & 0.07 & 0.61 & 0.20 & 0.79 & 0.08 & 0.02 & 0.66 & 0.34 & 0.59 & 0.45 & 0.17 & 0.00 & 0.37 & 15 \\
-GS,KA      & 0.90 & 0.32 & 0.27 & 0.07 & 0.62 & 0.21 & 0.79 & 0.07 & 0.02 & 0.66 & 0.35 & 0.63 & 0.41 & 0.17 & 0.00 & 0.37 & 15 \\
-S1         & 0.91 & 0.29 & 0.21 & 0.13 & 0.61 & 0.22 & 0.77 & 0.05 & 0.02 & 0.66 & 0.37 & 0.54 & 0.49 & 0.20 & 0.00 & 0.36 & 15 \\
-GSSIM      & 0.91 & 0.27 & 0.18 & 0.09 & 0.59 & 0.19 & 0.75 & 0.06 & 0.02 & 0.63 & 0.31 & 0.55 & 0.56 & 0.18 & 0.00 & 0.35 & 15 \\
+S1,KA      & 0.92 & 0.26 & 0.24 & 0.14 & 0.60 & 0.21 & 0.79 & 0.05 & 0.01 & 0.68 & 0.35 & 0.59 & 0.61 & 0.10 & 0.00 & 0.37 & 14 \\
+S1,GS,KA   & 0.91 & 0.35 & 0.27 & 0.07 & 0.61 & 0.20 & 0.79 & 0.08 & 0.02 & 0.66 & 0.34 & 0.59 & 0.45 & 0.17 & 0.00 & 0.37 & 14 \\
+GS,KA      & 0.90 & 0.32 & 0.27 & 0.07 & 0.62 & 0.21 & 0.79 & 0.07 & 0.02 & 0.66 & 0.35 & 0.63 & 0.41 & 0.17 & 0.00 & 0.37 & 14 \\
+S1         & 0.91 & 0.29 & 0.21 & 0.13 & 0.61 & 0.22 & 0.77 & 0.05 & 0.02 & 0.66 & 0.37 & 0.54 & 0.49 & 0.20 & 0.00 & 0.36 & 14 \\
+GSSIM      & 0.91 & 0.27 & 0.18 & 0.09 & 0.59 & 0.19 & 0.75 & 0.06 & 0.02 & 0.63 & 0.31 & 0.55 & 0.56 & 0.18 & 0.00 & 0.35 & 14 \\
 SSIM5      & 0.90 & 0.13 & 0.07 & 0.17 & 0.45 & 0.22 & 0.70 & 0.06 & 0.16 & 0.59 & 0.36 & 0.44 & 0.42 & 0.14 & 0.04 & 0.32 & 15 \\
-Euclidean  & 0.91 & 0.22 & 0.12 & 0.05 & 0.48 & 0.35 & 0.74 & 0.05 & 0.14 & 0.57 & 0.22 & 0.33 & 0.34 & 0.06 & 0.00 & 0.30 & 15 \\
-KAPPA      & 0.88 & 0.25 & 0.22 & 0.10 & 0.45 & 0.06 & 0.78 & 0.07 & 0.01 & 0.68 & 0.26 & 0.62 & 0.04 & 0.04 & 0.00 & 0.30 & 15 \\
+Euclidean  & 0.91 & 0.22 & 0.12 & 0.05 & 0.48 & 0.35 & 0.74 & 0.05 & 0.14 & 0.57 & 0.22 & 0.33 & 0.34 & 0.06 & 0.00 & 0.30 & 14 \\
+KAPPA      & 0.88 & 0.25 & 0.22 & 0.10 & 0.45 & 0.06 & 0.78 & 0.07 & 0.01 & 0.68 & 0.26 & 0.62 & 0.04 & 0.04 & 0.00 & 0.30 & 14 \\
 \hline
 \end{tabular}
 \end{table*}
@@ -382,17 +389,30 @@ KAPPA      & 0.88 & 0.25 & 0.22 & 0.10 & 0.45 & 0.06 & 0.78 & 0.07 & 0.01 & 0.68
 \hline
 Method & 1 & 2A & 2B & 2C & 2D & 3A & 3B & 3C & 3D & 4A & 4B & 5 & 6A & 6B & 6C & Overall & N\_lab \\
 \hline
-S1,KA      & 0.91 & 0.21 & 0.03 & 0.00 & 0.57 & 0.00 & 0.80 & 0.00 & 0.00 & 0.73 & 0.08 & 0.09 & 0.00 & 0.00 & 0.00 & 0.23 & 15 \\
-S1,GS,KA   & 0.92 & 0.20 & 0.02 & 0.00 & 0.45 & 0.02 & 0.80 & 0.00 & 0.00 & 0.64 & 0.08 & 0.12 & 0.00 & 0.01 & 0.00 & 0.22 & 15 \\
-GSSIM      & 0.93 & 0.09 & 0.02 & 0.00 & 0.48 & 0.02 & 0.78 & 0.00 & 0.00 & 0.53 & 0.10 & 0.14 & 0.00 & 0.11 & 0.00 & 0.21 & 15 \\
-GS,KA      & 0.93 & 0.14 & 0.04 & 0.00 & 0.44 & 0.03 & 0.79 & 0.00 & 0.00 & 0.62 & 0.08 & 0.14 & 0.00 & 0.00 & 0.00 & 0.21 & 15 \\
-S1         & 0.95 & 0.04 & 0.01 & 0.00 & 0.53 & 0.01 & 0.77 & 0.00 & 0.00 & 0.65 & 0.06 & 0.08 & 0.02 & 0.04 & 0.00 & 0.21 & 15 \\
-KAPPA      & 0.91 & 0.15 & 0.00 & 0.00 & 0.31 & 0.00 & 0.73 & 0.00 & 0.00 & 0.74 & 0.05 & 0.20 & 0.00 & 0.00 & 0.00 & 0.21 & 15 \\
-Euclidean  & 0.86 & 0.04 & 0.00 & 0.00 & 0.29 & 0.00 & 0.83 & 0.00 & 0.00 & 0.66 & 0.01 & 0.01 & 0.00 & 0.00 & 0.00 & 0.18 & 15 \\
-SSIM5      & 0.86 & 0.00 & 0.00 & 0.01 & 0.28 & 0.00 & 0.78 & 0.00 & 0.00 & 0.52 & 0.08 & 0.05 & 0.00 & 0.00 & 0.00 & 0.17 & 15 \\
+S1,KA      & 0.91 & 0.21 & 0.03 & 0.00 & 0.57 & 0.00 & 0.80 & 0.00 & 0.00 & 0.73 & 0.08 & 0.09 & 0.00 & 0.00 & 0.00 & 0.23 & 8 \\
+S1,GS,KA   & 0.92 & 0.20 & 0.02 & 0.00 & 0.45 & 0.02 & 0.80 & 0.00 & 0.00 & 0.64 & 0.08 & 0.12 & 0.00 & 0.01 & 0.00 & 0.22 & 10 \\
+GSSIM      & 0.93 & 0.09 & 0.02 & 0.00 & 0.48 & 0.02 & 0.78 & 0.00 & 0.00 & 0.53 & 0.10 & 0.14 & 0.00 & 0.11 & 0.00 & 0.21 & 10 \\
+GS,KA      & 0.93 & 0.14 & 0.04 & 0.00 & 0.44 & 0.03 & 0.79 & 0.00 & 0.00 & 0.62 & 0.08 & 0.14 & 0.00 & 0.00 & 0.00 & 0.21 & 10 \\
+S1         & 0.95 & 0.04 & 0.01 & 0.00 & 0.53 & 0.01 & 0.77 & 0.00 & 0.00 & 0.65 & 0.06 & 0.08 & 0.02 & 0.04 & 0.00 & 0.21 & 11 \\
+KAPPA      & 0.91 & 0.15 & 0.00 & 0.00 & 0.31 & 0.00 & 0.73 & 0.00 & 0.00 & 0.74 & 0.05 & 0.20 & 0.00 & 0.00 & 0.00 & 0.21 & 7 \\
+Euclidean  & 0.86 & 0.04 & 0.00 & 0.00 & 0.29 & 0.00 & 0.83 & 0.00 & 0.00 & 0.66 & 0.01 & 0.01 & 0.00 & 0.00 & 0.00 & 0.18 & 7 \\
+SSIM5      & 0.86 & 0.00 & 0.00 & 0.01 & 0.28 & 0.00 & 0.78 & 0.00 & 0.00 & 0.52 & 0.08 & 0.05 & 0.00 & 0.00 & 0.00 & 0.17 & 7 \\
 \hline
 \end{tabular}
 \end{table*}
+
+\begin{figure*}[t!]
+\centering
+\begin{tabular}{cc}
+\includegraphics[width=0.45\textwidth]{fig/s1k_som_node_avg_all.png} &
+\includegraphics[width=0.45\textwidth]{fig/s1k_som_node_true_medoid_all.png} \\
+(a) centroid（平均; 雪だるま現象が顕著） & (b) true medoid（実サンプル代表） \\
+\end{tabular}
+\caption{S1,KA 手法における最良学習（seed=20）の $10\times 10$ SOM 出力マップ．右図（true medoid）では，ノード多数決ラベルと medoid の基本ラベルが一致したノードに色付けしている（凡例：1=青，2D=黄色，3B=オレンジ，4A=ピンク，4B=紫，5=赤，6B=緑）．}
+\label{fig:s1k_maps}
+\end{figure*}
+
+図\ref{fig:s1k_maps}に，S1,KA 手法における学習精度が最も高かったseed=20のSOM出力（$10\times 10$）を示す．左は centroid（平均）であり，平均化の影響により低気圧中心や前線の鋭さが弱まり，いわゆる「雪だるま現象」によりノードの気圧配置に対するラベル付けが困難となる．特に台風（6系）では極小が鈍化し識別がほぼ不可能である．一方，右のtrue medoidでは実データの鋭さ・位相が保持され，ノード多数決ラベルとmedoidの基本ラベルが一致したノードを色付け（1=青，2D=黄色，3B=オレンジ，4A=ピンク，4B=紫，5=赤，6B=緑）することで，専門家の手を借りずとも各ノードに対して一貫したラベル付けが可能となることが期待される．
 
 \section{考察}
 \subsection{手法の特性と補完性}
@@ -410,7 +430,7 @@ S1は勾配差に敏感，KAPPAは曲率（幾何）を評価するため，S1,K
 台風系（6A/6B/6C）は出現頻度が極端に低く，さらに複合場が約半数を占めるため，検証で再現率が低下しやすい．季節別SOM（冬・梅雨・台風季）や階層的分類（大局型→サブタイプ），外部事象フラグの併用（台風客観解析）により稀少クラスの頑健性を補うことができる．
 
 \section{まとめ}
-Batch-SOM上で，既存手法（S1，SSIM5，Euclidean）と提案手法（KAPPA，GSSIM，S1,KA，GS,KA，S1,GS,KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で行った．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．S1,KAのスコアが高く実務ではS1,KAの運用が望ましい．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．
+Batch-SOM上で，既存手法（S1，SSIM5，Euclidean）と提案手法（KAPPA, GSSIM, S1, KA, GS, KA, S1, GS, KA）の8手法を同一条件で比較できる実験枠組みを構築した．実装に準拠した厳密な数式定義を提示し，評価は基本ラベルに対するMacro Recallとノード代表一致率で実施した．centroidの代わりにmedoidを採用することで代表パターンの鋭さを保持できる．S1,KAのスコアが高く実務ではS1,KAの運用が望ましい．今後は多変量拡張，季節別最適化，および循環統計の総合評価（例：Jensen–Shannon距離）への発展を予定する．
 
 本研究は，気圧配置分類の実用化に向けた重要な一歩であり，気象予報支援システムや気候変動影響評価への応用が期待される．
 
