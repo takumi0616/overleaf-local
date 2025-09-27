@@ -16,6 +16,26 @@
 \usepackage{url}
 \usepackage[dvipdfmx]{color}
 \usepackage{float}
+% --- spacing tweaks (Level 1+2) ---
+% 数式まわり
+\setlength{\abovedisplayskip}{8pt}
+\setlength{\belowdisplayskip}{8pt}
+\setlength{\abovedisplayshortskip}{6pt}
+\setlength{\belowdisplayshortskip}{6pt}
+% 図表まわり
+\setlength{\abovecaptionskip}{2pt}
+\setlength{\belowcaptionskip}{0pt}
+\setlength{\floatsep}{6pt}
+\setlength{\textfloatsep}{6pt}
+\setlength{\intextsep}{6pt}
+% 参考文献（thebibliographyのみ）をコンパクトに
+\let\oldthebibliography\thebibliography
+\let\endoldthebibliography\endthebibliography
+\renewenvironment{thebibliography}[1]{%
+  \oldthebibliography{#1}%
+  \setlength{\itemsep}{0pt}%
+  \setlength{\parskip}{0pt}%
+}{\endoldthebibliography}
 %%%%% Theorem environment 定理環境 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \theoremstyle{definition}
 %\theoremsymbol{\ensuremath{\Box}}
@@ -34,7 +54,7 @@
     \makebox[\linewidth][l]{\resizebox{#1}{!}{\ensuremath{#2}}}%
   \end{equation}
 }
-\renewcommand{\baselinestretch}{.9}
+\renewcommand{\baselinestretch}{.88}
 
 \title{
   %和文の論文題目
