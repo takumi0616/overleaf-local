@@ -171,6 +171,12 @@ d_{\mathrm{GS}}(x,w)=1-
 }
 $g_x^\cdot,g_y^\cdot$は内部格子の一次差分，$G^\cdot=\sqrt{(g_x^\cdot)^2+(g_y^\cdot)^2+\varepsilon}$である．
 
+本研究で提案するGSSIM（勾配構造類似度）は，画像処理分野における構造類似度指標（SSIM）の概念を勾配場に拡張したものである．第2項の$\frac{2G^xG^w}{(G^x)^2+(G^w)^2}$は勾配強度の類似度を評価し，第3項の$\frac{1}{2}(1+\cos\theta)$（ここで$\cos\theta = \frac{g_x^x g_x^w+g_y^x g_y^w}{G^x G^w}$）は勾配方向の一致度を評価する．
+
+この定式化は，エッジ検出理論\cite{canny1986computational,marr1980theory}における勾配の重要性と，ベクトル場の類似度評価におけるコサイン類似度の有効性に基づいている．分子の$\max(G^x,G^w)$による重み付けにより，強い勾配（前線帯や気圧傾度の大きい領域）での一致度をより重視する設計となっている．
+
+気象場において勾配の強度と方向を同時に評価し，かつ強いエッジを重み付きで評価する距離関数は既存研究には見当たらない．GSSIMは，総観規模気象場の前線構造や気圧傾度の空間パターンを効果的に捉える新規な距離指標である．
+
 \paragraph{KAPPA（曲率距離）}
 正規化勾配の発散（曲率）から等圧線の曲がり（凹凸・渦の閉じ具合）を比較：
 \halfeq{%
@@ -179,6 +185,12 @@ d_{\mathrm{KA}}(x,w)=\tfrac{1}{2}\times
 {\sum\limits_{i,j}\max\!\bigl(|\kappa(x)(i,j)|,|\kappa(w)(i,j)|\bigr)+\varepsilon}%
 }
 $\kappa(z)=\nabla\cdot\left(\nabla z/(\|\nabla z\|+\varepsilon)\right)$は中心差分の内部共通格子で評価される．
+
+本研究で用いる曲率$\kappa(z)=\nabla\cdot(\nabla z/(\|\nabla z\|+\varepsilon))$は，水平集法における曲線進展の数理定式化\cite{osher1988fronts}や，微分幾何学における等値線曲率の定義\cite{docarmo1976differential}に基づくものである．
+
+さらに，本研究で提案する距離関数における正規化の形式（差分の絶対値を総和し，最大値の総和で割る構造）は，Dice係数\cite{dice1945measures}，Tanimoto係数\cite{tanimoto1957elementary}，およびNDVI\cite{rouse1974monitoring}などの既存指標に類似する．
+
+しかしながら，これら既存の指標はいずれも強度値や集合の差異を対象としており，気象場における曲率（正規化勾配の発散）を直接距離関数として定義し，格子全体で比較する手法は報告されていない．したがって，KAPPA（曲率距離）は，既存の正規化手法の数式構造を踏まえつつも，対象量として曲率場を扱う点において新規性を有する．
 
 \subsection{複合手法}
 複合手法として，異なる物理的意味を持つ距離指標を統合する新しい手法を提案する．本研究の新規性は，複数の距離関数をRoot Mean Square（RMS）で統合する点にある．
